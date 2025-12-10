@@ -18,6 +18,7 @@
 
 #include "ToolButton.h"
 #include "Tool.h"
+#include <QWidget>
 
 ToolButton::ToolButton(Tool* tool, QKeySequence sequence, QWidget* parent)
     : QAction(parent)

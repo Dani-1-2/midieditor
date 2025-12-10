@@ -29,7 +29,7 @@
 class MidiEvent;
 class RtMidiIn;
 class RtMidiOut;
-class QStringList;
+//class QStringList;
 class MidiTrack;
 
 class MidiInput : public QObject {

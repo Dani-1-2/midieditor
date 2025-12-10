@@ -18,6 +18,7 @@
 #include "MainWindow.h"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QComboBox>
 #include <QFile>
 #include <QFileDialog>
@@ -2467,22 +2468,22 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     tweakMenu->addAction(tweakSmallIncreaseAction);
 
     QAction* tweakMediumDecreaseAction = new QAction("Medium decrease", tweakMenu);
-    tweakMediumDecreaseAction->setShortcut(Qt::Key_9 + Qt::ALT);
+    tweakMediumDecreaseAction->setShortcut(Qt::Key_9 | Qt::ALT);
     connect(tweakMediumDecreaseAction, SIGNAL(triggered()), this, SLOT(tweakMediumDecrease()));
     tweakMenu->addAction(tweakMediumDecreaseAction);
 
     QAction* tweakMediumIncreaseAction = new QAction("Medium increase", tweakMenu);
-    tweakMediumIncreaseAction->setShortcut(Qt::Key_0 + Qt::ALT);
+    tweakMediumIncreaseAction->setShortcut(Qt::Key_0 | Qt::ALT);
     connect(tweakMediumIncreaseAction, SIGNAL(triggered()), this, SLOT(tweakMediumIncrease()));
     tweakMenu->addAction(tweakMediumIncreaseAction);
 
     QAction* tweakLargeDecreaseAction = new QAction("Large decrease", tweakMenu);
-    tweakLargeDecreaseAction->setShortcut(Qt::Key_9 + Qt::ALT + Qt::SHIFT);
+    tweakLargeDecreaseAction->setShortcut(Qt::Key_9 | Qt::ALT | Qt::SHIFT);
     connect(tweakLargeDecreaseAction, SIGNAL(triggered()), this, SLOT(tweakLargeDecrease()));
     tweakMenu->addAction(tweakLargeDecreaseAction);
 
     QAction* tweakLargeIncreaseAction = new QAction("Large increase", tweakMenu);
-    tweakLargeIncreaseAction->setShortcut(Qt::Key_0 + Qt::ALT + Qt::SHIFT);
+    tweakLargeIncreaseAction->setShortcut(Qt::Key_0 | Qt::ALT | Qt::SHIFT);
     connect(tweakLargeIncreaseAction, SIGNAL(triggered()), this, SLOT(tweakLargeIncrease()));
     tweakMenu->addAction(tweakLargeIncreaseAction);
 
@@ -2500,7 +2501,7 @@ QWidget* MainWindow::setupActions(QWidget* parent)
 
     QAction* alignLeftAction = new QAction("Align left", this);
     _activateWithSelections.append(alignLeftAction);
-    alignLeftAction->setShortcut(QKeySequence(Qt::Key_Left + Qt::CTRL));
+    alignLeftAction->setShortcut(QKeySequence(Qt::Key_Left | Qt::CTRL));
     alignLeftAction->setIcon(QIcon(":/run_environment/graphics/tool/align_left.png"));
     connect(alignLeftAction, SIGNAL(triggered()), this, SLOT(alignLeft()));
     toolsMB->addAction(alignLeftAction);
@@ -2508,14 +2509,14 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     QAction* alignRightAction = new QAction("Align right", this);
     _activateWithSelections.append(alignRightAction);
     alignRightAction->setIcon(QIcon(":/run_environment/graphics/tool/align_right.png"));
-    alignRightAction->setShortcut(QKeySequence(Qt::Key_Right + Qt::CTRL));
+    alignRightAction->setShortcut(QKeySequence(Qt::Key_Right | Qt::CTRL));
     connect(alignRightAction, SIGNAL(triggered()), this, SLOT(alignRight()));
     toolsMB->addAction(alignRightAction);
 
     QAction* equalizeAction = new QAction("Equalize selection", this);
     _activateWithSelections.append(equalizeAction);
     equalizeAction->setIcon(QIcon(":/run_environment/graphics/tool/equalize.png"));
-    equalizeAction->setShortcut(QKeySequence(Qt::Key_Up + Qt::CTRL));
+    equalizeAction->setShortcut(QKeySequence(Qt::Key_Up | Qt::CTRL));
     connect(equalizeAction, SIGNAL(triggered()), this, SLOT(equalize()));
     toolsMB->addAction(equalizeAction);
 
@@ -2524,7 +2525,7 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     QAction* quantizeAction = new QAction("Quantify selection", this);
     _activateWithSelections.append(quantizeAction);
     quantizeAction->setIcon(QIcon(":/run_environment/graphics/tool/quantize.png"));
-    quantizeAction->setShortcut(QKeySequence(Qt::Key_G + Qt::CTRL));
+    quantizeAction->setShortcut(QKeySequence(Qt::Key_G | Qt::CTRL));
     connect(quantizeAction, SIGNAL(triggered()), this, SLOT(quantizeSelection()));
     toolsMB->addAction(quantizeAction);
 
@@ -2558,13 +2559,13 @@ QWidget* MainWindow::setupActions(QWidget* parent)
 
     QAction* quantizeNToleAction = new QAction("Quantify tuplet...", this);
     _activateWithSelections.append(quantizeNToleAction);
-    quantizeNToleAction->setShortcut(QKeySequence(Qt::Key_H + Qt::CTRL + Qt::SHIFT));
+    quantizeNToleAction->setShortcut(QKeySequence(Qt::Key_H | Qt::CTRL | Qt::SHIFT));
     connect(quantizeNToleAction, SIGNAL(triggered()), this, SLOT(quantizeNtoleDialog()));
     toolsMB->addAction(quantizeNToleAction);
 
     QAction* quantizeNToleActionRepeat = new QAction("Repeat tuplet quantization", this);
     _activateWithSelections.append(quantizeNToleActionRepeat);
-    quantizeNToleActionRepeat->setShortcut(QKeySequence(Qt::Key_H + Qt::CTRL));
+    quantizeNToleActionRepeat->setShortcut(QKeySequence(Qt::Key_H | Qt::CTRL));
     connect(quantizeNToleActionRepeat, SIGNAL(triggered()), this, SLOT(quantizeNtole()));
     toolsMB->addAction(quantizeNToleActionRepeat);
 
@@ -2613,7 +2614,7 @@ QWidget* MainWindow::setupActions(QWidget* parent)
 
     QAction* transposeAction = new QAction("Transpose selection...", this);
     _activateWithSelections.append(transposeAction);
-    transposeAction->setShortcut(QKeySequence(Qt::Key_T + Qt::CTRL));
+    transposeAction->setShortcut(QKeySequence(Qt::Key_T | Qt::CTRL));
     connect(transposeAction, SIGNAL(triggered()), this, SLOT(transposeNSemitones()));
     toolsMB->addAction(transposeAction);
 
@@ -2632,7 +2633,7 @@ QWidget* MainWindow::setupActions(QWidget* parent)
 
     QAction* magnetAction = new QAction("Magnet", editMB);
     toolsMB->addAction(magnetAction);
-    magnetAction->setShortcut(QKeySequence(Qt::Key_M + Qt::CTRL));
+    magnetAction->setShortcut(QKeySequence(Qt::Key_M | Qt::CTRL));
     magnetAction->setIcon(QIcon(":/run_environment/graphics/tool/magnet.png"));
     magnetAction->setCheckable(true);
     magnetAction->setChecked(false);
@@ -2642,7 +2643,7 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     // View
     QMenu* zoomMenu = new QMenu("Zoom...", viewMB);
     QAction* zoomHorOutAction = new QAction("Horizontal out", this);
-    zoomHorOutAction->setShortcut(QKeySequence(Qt::Key_Minus + Qt::CTRL));
+    zoomHorOutAction->setShortcut(QKeySequence(Qt::Key_Minus | Qt::CTRL));
     zoomHorOutAction->setIcon(QIcon(":/run_environment/graphics/tool/zoom_hor_out.png"));
     connect(zoomHorOutAction, SIGNAL(triggered()),
         mw_matrixWidget, SLOT(zoomHorOut()));
@@ -2650,21 +2651,21 @@ QWidget* MainWindow::setupActions(QWidget* parent)
 
     QAction* zoomHorInAction = new QAction("Horizontal in", this);
     zoomHorInAction->setIcon(QIcon(":/run_environment/graphics/tool/zoom_hor_in.png"));
-    zoomHorInAction->setShortcut(QKeySequence(Qt::Key_Plus + Qt::CTRL));
+    zoomHorInAction->setShortcut(QKeySequence(Qt::Key_Plus | Qt::CTRL));
     connect(zoomHorInAction, SIGNAL(triggered()),
         mw_matrixWidget, SLOT(zoomHorIn()));
     zoomMenu->addAction(zoomHorInAction);
 
     QAction* zoomVerOutAction = new QAction("Vertical out", this);
     zoomVerOutAction->setIcon(QIcon(":/run_environment/graphics/tool/zoom_ver_out.png"));
-    zoomVerOutAction->setShortcut(QKeySequence(Qt::Key_Minus + Qt::CTRL + Qt::ALT));
+    zoomVerOutAction->setShortcut(QKeySequence(Qt::Key_Minus | Qt::CTRL | Qt::ALT));
     connect(zoomVerOutAction, SIGNAL(triggered()),
         mw_matrixWidget, SLOT(zoomVerOut()));
     zoomMenu->addAction(zoomVerOutAction);
 
     QAction* zoomVerInAction = new QAction("Vertical in", this);
     zoomVerInAction->setIcon(QIcon(":/run_environment/graphics/tool/zoom_ver_in.png"));
-    zoomVerInAction->setShortcut(QKeySequence(Qt::Key_Plus + Qt::CTRL + Qt::ALT));
+    zoomVerInAction->setShortcut(QKeySequence(Qt::Key_Plus | Qt::CTRL | Qt::ALT));
     connect(zoomVerInAction, SIGNAL(triggered()),
         mw_matrixWidget, SLOT(zoomVerIn()));
     zoomMenu->addAction(zoomVerInAction);
@@ -2672,7 +2673,7 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     zoomMenu->addSeparator();
 
     QAction* zoomStdAction = new QAction("Restore default", this);
-    zoomStdAction->setShortcut(QKeySequence(Qt::Key_0 + Qt::CTRL));
+    zoomStdAction->setShortcut(QKeySequence(Qt::Key_0 | Qt::CTRL));
     connect(zoomStdAction, SIGNAL(triggered()),
         mw_matrixWidget, SLOT(zoomStd()));
     zoomMenu->addAction(zoomStdAction);
@@ -2734,7 +2735,7 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     QList<QKeySequence> playStopActionShortcuts;
     playStopActionShortcuts << QKeySequence(Qt::Key_Space)
                             << QKeySequence(Qt::Key_K)
-                            << QKeySequence(Qt::Key_P + Qt::CTRL);
+                            << QKeySequence(Qt::Key_P | Qt::CTRL);
     playStopAction->setShortcuts(playStopActionShortcuts);
     connect(playStopAction, SIGNAL(triggered()), this, SLOT(playStop()));
     playbackMB->addAction(playStopAction);
@@ -2747,16 +2748,16 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     QAction* pauseAction = new QAction("Pause", this);
     pauseAction->setIcon(QIcon(":/run_environment/graphics/tool/pause.png"));
 #ifdef Q_OS_MAC
-    pauseAction->setShortcut(QKeySequence(Qt::Key_Space + Qt::META));
+    pauseAction->setShortcut(QKeySequence(Qt::Key_Space | Qt::META));
 #else
-    pauseAction->setShortcut(QKeySequence(Qt::Key_Space + Qt::CTRL));
+    pauseAction->setShortcut(QKeySequence(Qt::Key_Space | Qt::CTRL));
 #endif
     connect(pauseAction, SIGNAL(triggered()), this, SLOT(pause()));
     playbackMB->addAction(pauseAction);
 
     QAction* recAction = new QAction("Record", this);
     recAction->setIcon(QIcon(":/run_environment/graphics/tool/record.png"));
-    recAction->setShortcut(QKeySequence(Qt::Key_R + Qt::CTRL));
+    recAction->setShortcut(QKeySequence(Qt::Key_R | Qt::CTRL));
     connect(recAction, SIGNAL(triggered()), this, SLOT(record()));
     playbackMB->addAction(recAction);
 
@@ -2770,9 +2771,9 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     QAction* backToBeginAction = new QAction("Back to begin", this);
     backToBeginAction->setIcon(QIcon(":/run_environment/graphics/tool/back_to_begin.png"));
     QList<QKeySequence> backToBeginActionShortcuts;
-    backToBeginActionShortcuts << QKeySequence(Qt::Key_Up + Qt::ALT)
-                               << QKeySequence(Qt::Key_Home + Qt::ALT)
-                               << QKeySequence(Qt::Key_J + Qt::SHIFT);
+    backToBeginActionShortcuts << QKeySequence(Qt::Key_Up | Qt::ALT)
+                               << QKeySequence(Qt::Key_Home | Qt::ALT)
+                               << QKeySequence(Qt::Key_J | Qt::SHIFT);
     backToBeginAction->setShortcuts(backToBeginActionShortcuts);
     connect(backToBeginAction, SIGNAL(triggered()), this, SLOT(backToBegin()));
     playbackMB->addAction(backToBeginAction);
@@ -2780,7 +2781,7 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     QAction* backAction = new QAction("Previous measure", this);
     backAction->setIcon(QIcon(":/run_environment/graphics/tool/back.png"));
     QList<QKeySequence> backActionShortcuts;
-    backActionShortcuts << QKeySequence(Qt::Key_Left + Qt::ALT)
+    backActionShortcuts << QKeySequence(Qt::Key_Left | Qt::ALT)
                         << QKeySequence(Qt::Key_J);
     backAction->setShortcuts(backActionShortcuts);
     connect(backAction, SIGNAL(triggered()), this, SLOT(back()));
@@ -2789,7 +2790,7 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     QAction* forwAction = new QAction("Next measure", this);
     forwAction->setIcon(QIcon(":/run_environment/graphics/tool/forward.png"));
     QList<QKeySequence> forwActionShortcuts;
-    forwActionShortcuts << QKeySequence(Qt::Key_Right + Qt::ALT)
+    forwActionShortcuts << QKeySequence(Qt::Key_Right | Qt::ALT)
                         << QKeySequence(Qt::Key_L);
     forwAction->setShortcuts(forwActionShortcuts);
     connect(forwAction, SIGNAL(triggered()), this, SLOT(forward()));
@@ -2800,14 +2801,14 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     QAction* backMarkerAction = new QAction("Previous marker", this);
     backMarkerAction->setIcon(QIcon(":/run_environment/graphics/tool/back_marker.png"));
     QList<QKeySequence> backMarkerActionShortcuts;
-    backMarkerAction->setShortcut(QKeySequence(Qt::Key_Comma + Qt::ALT));
+    backMarkerAction->setShortcut(QKeySequence(Qt::Key_Comma | Qt::ALT));
     connect(backMarkerAction, SIGNAL(triggered()), this, SLOT(backMarker()));
     playbackMB->addAction(backMarkerAction);
 
     QAction* forwMarkerAction = new QAction("Next marker", this);
     forwMarkerAction->setIcon(QIcon(":/run_environment/graphics/tool/forward_marker.png"));
     QList<QKeySequence> forwMarkerActionShortcuts;
-    forwMarkerAction->setShortcut(QKeySequence(Qt::Key_Period + Qt::ALT));
+    forwMarkerAction->setShortcut(QKeySequence(Qt::Key_Period | Qt::ALT));
     connect(forwMarkerAction, SIGNAL(triggered()), this, SLOT(forwardMarker()));
     playbackMB->addAction(forwMarkerAction);
 

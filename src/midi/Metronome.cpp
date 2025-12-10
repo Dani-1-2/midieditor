@@ -7,17 +7,25 @@
 #include <QFileInfo>
 
 #include <QMediaPlayer>
+#include <QAudioOutput>
 
-Metronome *Metronome::_instance = new Metronome();
+Metronome *Metronome::_instance = nullptr;
 bool Metronome::_enable = false;
 
 Metronome::Metronome(QObject *parent) :	QObject(parent) {
     _file = 0;
     num = 4;
     denom = 2;
-    _player = new QMediaPlayer(this, QMediaPlayer::LowLatency);
-    _player->setVolume(100);
-    _player->setMedia(QUrl::fromLocalFile(QFileInfo("metronome/metronome-01.wav").absoluteFilePath()));
+    _player = new QMediaPlayer(this);
+    _audioOutput = new QAudioOutput(this);
+    _player->setAudioOutput(_audioOutput);
+    _audioOutput->setVolume(1.0);
+
+    // Try to load the metronome sound file if it exists
+    QString metronomeFile = QFileInfo("metronome/metronome-01.wav").absoluteFilePath();
+    if (QFile::exists(metronomeFile)) {
+        _player->setSource(QUrl::fromLocalFile(metronomeFile));
+    }
 }
 
 void Metronome::setFile(MidiFile *file){
@@ -62,6 +70,9 @@ void Metronome::playbackStopped(){
 }
 
 Metronome *Metronome::instance(){
+    if (!_instance) {
+        _instance = new Metronome();
+    }
     return _instance;
 }
 
@@ -87,9 +98,14 @@ void Metronome::setEnabled(bool b){
 }
 
 void Metronome::setLoudness(int value){
-    _instance->_player->setVolume(value);
+    if (_instance && _instance->_audioOutput) {
+        _instance->_audioOutput->setVolume(value / 100.0);
+    }
 }
 
 int Metronome::loudness(){
-    return _instance->_player->volume();
+    if (_instance && _instance->_audioOutput) {
+        return (int)(_instance->_audioOutput->volume() * 100);
+    }
+    return 100;
 }

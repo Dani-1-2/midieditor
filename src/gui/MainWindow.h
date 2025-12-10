@@ -31,7 +31,7 @@ class ChannelListWidget;
 class ProtocolWidget;
 class EventWidget;
 class ClickButton;
-class QStringList;
+//class QStringList;
 class QTabWidget;
 class QMenu;
 class TrackListWidget;
