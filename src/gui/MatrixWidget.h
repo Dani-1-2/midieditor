@@ -23,6 +23,7 @@
 
 #include <QApplication>
 #include <QColor>
+#include <QContextMenuEvent>
 #include <QMap>
 #include <QMouseEvent>
 #include <QPaintEvent>
@@ -103,6 +104,7 @@ protected:
     void keyPressEvent(QKeyEvent* e);
     void keyReleaseEvent(QKeyEvent* event);
     void wheelEvent(QWheelEvent* event);
+    void contextMenuEvent(QContextMenuEvent* event);
 
 private:
     void paintChannel(QPainter* painter, int channel);
