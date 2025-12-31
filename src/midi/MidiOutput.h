@@ -26,7 +26,7 @@
 class MidiEvent;
 class RtMidiIn;
 class RtMidiOut;
-class QStringList;
+//class QStringList;
 class SenderThread;
 
 class MidiOutput : public QObject {

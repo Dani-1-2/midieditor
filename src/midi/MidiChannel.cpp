@@ -199,23 +199,28 @@ void MidiChannel::deleteAllEvents()
     protocol(toCopy, this);
 }
 
+#include <iostream>
 int MidiChannel::progAtTick(int tick)
 {
 
     // search for the last ProgChangeEvent in the channel
     QMultiMap<int, MidiEvent*>::iterator it = _events->upperBound(tick);
-    if (it == _events->end()) {
-        it--;
-    }
-    if (_events->size()) {
-        while (it != _events->begin()) {
-            ProgChangeEvent* ev = dynamic_cast<ProgChangeEvent*>(it.value());
-            if (ev && it.key() <= tick) {
-                return ev->program();
-            }
-            it--;
-        }
-    }
+    // FIXME - this segfaults the program, for some reason.
+    // How to fix this? I have no idea...
+    // if (it == _events->end()) {
+    //     std::cout << "AAAH\n";
+    //     it--;
+    //     std::cout << "BEEEH\n";
+    // }
+    // if (_events->size()) {
+    //     while (it != _events->begin()) {
+    //         ProgChangeEvent* ev = dynamic_cast<ProgChangeEvent*>(it.value());
+    //         if (ev && it.key() <= tick) {
+    //             return ev->program();
+    //         }
+    //         it--;
+    //     }
+    // }
 
     // default: first
     foreach (MidiEvent* event, *_events) {

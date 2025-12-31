@@ -4,6 +4,7 @@
 #include <QObject>
 
 #include <QMediaPlayer>
+#include <QAudioOutput>
 
 class MidiFile;
 
@@ -36,6 +37,7 @@ private:
     static bool _enable;
 
     QMediaPlayer* _player;
+    QAudioOutput* _audioOutput;
 };
 
 #endif
