@@ -111,6 +111,9 @@ private:
     void paintPianoKey(QPainter* painter, int number, int x, int y,
         int width, int height);
 
+    NoteOnEvent* findPreviousNoteInTrack(NoteOnEvent* note);
+    NoteOnEvent* findNextNoteInTrack(NoteOnEvent* note);
+
     int startTick, endTick, startTimeX, endTimeX, startLineY, endLineY,
         lineNameWidth, timeHeight, msOfFirstEventInList;
     double scaleX, scaleY;

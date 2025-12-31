@@ -164,7 +164,7 @@ void MatrixWidget::scrollYChanged(int scrollPositionY)
     repaint();
 }
 
-void MatrixWidget::paintEvent(QPaintEvent* event)
+void MatrixWidget::paintEvent(QPaintEvent*)
 {
 
     if (!file)
@@ -890,7 +890,7 @@ void MatrixWidget::mouseMoveEvent(QMouseEvent* event)
     }
 
     if (!MidiPlayer::isPlaying() && Tool::currentTool()) {
-        Tool::currentTool()->move(event->x(), event->y());
+        Tool::currentTool()->move(event->position().x(), event->position().y());
     }
 
     if (!MidiPlayer::isPlaying()) {
@@ -1109,7 +1109,7 @@ void MatrixWidget::zoomVerOut()
     }
 }
 
-void MatrixWidget::mouseDoubleClickEvent(QMouseEvent* event)
+void MatrixWidget::mouseDoubleClickEvent(QMouseEvent*)
 {
     if (mouseInRect(TimeLineArea)) {
         int tick = file->tick(msOfXPos(mouseX));
@@ -1305,6 +1305,13 @@ void MatrixWidget::contextMenuEvent(QContextMenuEvent* event)
     // Scale Events action
     QAction* scaleAction = contextMenu.addAction("Scale Events...");
 
+    contextMenu.addSeparator();
+
+    // Fit notes between adjacent notes actions
+    QAction* fitBetweenAction = contextMenu.addAction("Fit Between Adjacent Notes");
+    QAction* moveAfterPrevAction = contextMenu.addAction("Move to After Previous Note");
+    QAction* resizeBeforeNextAction = contextMenu.addAction("Resize to Before Next Note");
+
     // Show menu and get selected action
     QAction* selectedAction = contextMenu.exec(event->globalPos());
 
@@ -1388,4 +1395,128 @@ void MatrixWidget::contextMenuEvent(QContextMenuEvent* event)
             file->protocol()->endAction();
         }
     }
+    // Handle Fit Between Adjacent Notes
+    else if (selectedAction == fitBetweenAction) {
+        file->protocol()->startNewAction("Fit notes between adjacent notes");
+
+        foreach (MidiEvent* ev, selectedEvents) {
+            NoteOnEvent* note = dynamic_cast<NoteOnEvent*>(ev);
+            if (!note) continue;
+
+            NoteOnEvent* prevNote = findPreviousNoteInTrack(note);
+            NoteOnEvent* nextNote = findNextNoteInTrack(note);
+
+            if (prevNote && nextNote) {
+                int newStart = prevNote->offEvent()->midiTime();
+                int newEnd = nextNote->midiTime();
+
+                if (newStart < newEnd) {
+                    note->setMidiTime(newStart);
+                    note->offEvent()->setMidiTime(newEnd);
+                }
+            }
+        }
+
+        file->protocol()->endAction();
+    }
+    // Handle Move to After Previous Note
+    else if (selectedAction == moveAfterPrevAction) {
+        file->protocol()->startNewAction("Move notes to after previous note");
+
+        foreach (MidiEvent* ev, selectedEvents) {
+            NoteOnEvent* note = dynamic_cast<NoteOnEvent*>(ev);
+            if (!note) continue;
+
+            NoteOnEvent* prevNote = findPreviousNoteInTrack(note);
+
+            if (prevNote) {
+                int duration = note->offEvent()->midiTime() - note->midiTime();
+                int newStart = prevNote->offEvent()->midiTime();
+
+                note->setMidiTime(newStart);
+                note->offEvent()->setMidiTime(newStart + duration);
+            }
+        }
+
+        file->protocol()->endAction();
+    }
+    // Handle Resize to Before Next Note
+    else if (selectedAction == resizeBeforeNextAction) {
+        file->protocol()->startNewAction("Resize notes to before next note");
+
+        foreach (MidiEvent* ev, selectedEvents) {
+            NoteOnEvent* note = dynamic_cast<NoteOnEvent*>(ev);
+            if (!note) continue;
+
+            NoteOnEvent* nextNote = findNextNoteInTrack(note);
+
+            if (nextNote) {
+                int newEnd = nextNote->midiTime();
+
+                if (newEnd > note->midiTime()) {
+                    note->offEvent()->setMidiTime(newEnd);
+                }
+            }
+        }
+
+        file->protocol()->endAction();
+    }
+}
+
+NoteOnEvent* MatrixWidget::findPreviousNoteInTrack(NoteOnEvent* note)
+{
+    if (!note || !file) {
+        return nullptr;
+    }
+
+    MidiTrack* track = note->track();
+    int currentTick = note->midiTime();
+    NoteOnEvent* prevNote = nullptr;
+
+    for (int channel = 0; channel < 16; channel++) {
+        QMultiMap<int, MidiEvent*>* map = file->channelEvents(channel);
+        QMultiMap<int, MidiEvent*>::iterator it = map->upperBound(currentTick);
+
+        while (it != map->begin()) {
+            --it;
+            MidiEvent* event = it.value();
+
+            if (event->track() == track) {
+                NoteOnEvent* noteOn = dynamic_cast<NoteOnEvent*>(event);
+                if (noteOn && noteOn->offEvent()->midiTime() <= currentTick) {
+                    return noteOn;
+                }
+            }
+        }
+    }
+    return nullptr;
+}
+
+NoteOnEvent* MatrixWidget::findNextNoteInTrack(NoteOnEvent* note)
+{
+    if (!note || !file) {
+        return nullptr;
+    }
+
+    MidiTrack* track = note->track();
+    int currentTick = note->offEvent()->midiTime();
+
+    for (int channel = 0; channel < 16; channel++) {
+        QMultiMap<int, MidiEvent*>* map = file->channelEvents(channel);
+        QMultiMap<int, MidiEvent*>::iterator it = map->lowerBound(currentTick);
+
+        while (it != map->end()) {
+            MidiEvent* event = it.value();
+
+            if (event->track() == track) {
+                NoteOnEvent* noteOn = dynamic_cast<NoteOnEvent*>(event);
+                if (noteOn && noteOn->midiTime() >= currentTick) {
+                    return noteOn;
+                }
+            }
+            ++it;
+        }
+    }
+
+    return nullptr;
 }
