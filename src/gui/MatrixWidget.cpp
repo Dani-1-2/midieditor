@@ -27,6 +27,7 @@
 #include "../midi/MidiChannel.h"
 #include "../midi/MidiFile.h"
 #include "../midi/MidiInput.h"
+#include "../midi/MidiOutput.h"
 #include "../midi/MidiPlayer.h"
 #include "../midi/MidiTrack.h"
 #include "../midi/PlayerThread.h"
@@ -961,6 +962,7 @@ void MatrixWidget::mousePressEvent(QMouseEvent* event)
             if (inRect) {
                 // play note
                 pianoEvent->setNote(key);
+                pianoEvent->setChannel(MidiOutput::standardChannel(), false);
                 MidiPlayer::play(pianoEvent);
             }
         }

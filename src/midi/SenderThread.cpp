@@ -31,6 +31,13 @@ void SenderThread::run()
 {
 
     while (true) {
+        _mutex.lock();
+
+        // Wait for events if both queues are empty
+        while (_eventQueue->isEmpty() && _noteQueue->isEmpty()) {
+            _condition.wait(&_mutex);
+        }
+
         // First, send the misc events, such as control change and program change events.
         while (!_eventQueue->isEmpty()) {
             // send command
@@ -43,16 +50,24 @@ void SenderThread::run()
             MidiOutput::sendEnqueuedCommand(_noteQueue->head()->save());
             _noteQueue->pop_front();
         }
-        msleep(1);
+
+        _mutex.unlock();
     }
 }
 
 void SenderThread::enqueue(MidiEvent* event)
 {
+    _mutex.lock();
+
     // If it is a NoteOnEvent or an OffEvent, we put it in _noteQueue.
     if (dynamic_cast<NoteOnEvent*>(event) || dynamic_cast<OffEvent*>(event))
         _noteQueue->push_back(event);
     // Otherwise, it goes into _eventQueue.
     else
         _eventQueue->push_back(event);
+
+    // Wake up the sender thread immediately
+    _condition.wakeOne();
+
+    _mutex.unlock();
 }

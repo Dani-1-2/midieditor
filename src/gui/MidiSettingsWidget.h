@@ -28,6 +28,9 @@ class QLineEdit;
 class QCheckBox;
 class QSpinBox;
 class QSettings;
+class QPushButton;
+class QLabel;
+class QSlider;
 
 class AdditionalMidiSettingsWidget : public SettingsWidget {
 
@@ -62,10 +65,24 @@ public slots:
     void reloadOutputPorts();
     void inputChanged(QListWidgetItem* item);
     void outputChanged(QListWidgetItem* item);
+    void browseSoundfont();
+    void soundfontPathChanged();
+    void volumeChanged(int value);
 
 private:
     QStringList *_inputPorts, *_outputPorts;
     QListWidget *_inList, *_outList;
+
+    // FluidSynth UI components
+    QWidget* _fluidSynthSettingsWidget;
+    QLineEdit* _soundfontPathEdit;
+    QPushButton* _soundfontBrowseButton;
+    QLabel* _soundfontStatusLabel;
+    QSlider* _volumeSlider;
+    QLabel* _volumeLabel;
+
+    void createFluidSynthSettings();
+    void updateFluidSynthUI();
 };
 
 #endif

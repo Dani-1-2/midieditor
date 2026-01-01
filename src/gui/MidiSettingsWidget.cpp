@@ -23,7 +23,9 @@
 #include "../midi/MidiInput.h"
 #include "../midi/MidiOutput.h"
 #include "../midi/Metronome.h"
+#include "../midi/FluidSynthBackend.h"
 #include <QCheckBox>
+#include <QFileDialog>
 #include <QGridLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -33,6 +35,10 @@
 #include <QSettings>
 #include <QSpinBox>
 #include <QTextEdit>
+#include <QFile>
+#include <QFileInfo>
+#include <QDir>
+#include <QSlider>
 
 AdditionalMidiSettingsWidget::AdditionalMidiSettingsWidget(QSettings* settings, QWidget* parent)
     : SettingsWidget("Additional Midi Settings", parent)
@@ -156,6 +162,11 @@ MidiSettingsWidget::MidiSettingsWidget(QWidget* parent)
     connect(reloadInputList, SIGNAL(clicked()), this,
         SLOT(reloadInputPorts()));
     reloadInputPorts();
+
+    // Add FluidSynth settings section
+    layout->addWidget(separator(), 3, 0, 1, 6);
+    createFluidSynthSettings();
+    layout->addWidget(_fluidSynthSettingsWidget, 4, 0, 1, 6);
 }
 
 void MidiSettingsWidget::reloadInputPorts()
@@ -228,6 +239,189 @@ void MidiSettingsWidget::outputChanged(QListWidgetItem* item)
 
         MidiOutput::setOutputPort(item->text());
 
+        // If FluidSynth selected, ensure soundfont is loaded
+        if (item->text() == "FluidSynth (embedded)") {
+            QString currentPath = _soundfontPathEdit->text();
+
+            // If no soundfont configured, try to load default
+            if (currentPath.isEmpty()) {
+                FluidSynthBackend* fs = MidiOutput::fluidSynthBackend();
+                if (fs && fs->loadDefaultSoundfont()) {
+                    QString defaultPath = fs->currentSoundfont();
+                    _soundfontPathEdit->setText(defaultPath);
+                    QSettings settings(QString("MidiEditor"), QString("NONE"));
+                    settings.setValue("fluidsynth_soundfont", defaultPath);
+                }
+            }
+
+            soundfontPathChanged();
+        }
+
         reloadOutputPorts();
     }
+}
+
+void MidiSettingsWidget::createFluidSynthSettings()
+{
+    _fluidSynthSettingsWidget = new QWidget(this);
+    QGridLayout* fsLayout = new QGridLayout(_fluidSynthSettingsWidget);
+
+    // Title
+    QLabel* titleLabel = new QLabel("FluidSynth Settings:", _fluidSynthSettingsWidget);
+    QFont boldFont = titleLabel->font();
+    boldFont.setBold(true);
+    titleLabel->setFont(boldFont);
+    fsLayout->addWidget(titleLabel, 0, 0, 1, 3);
+
+    // Info box
+    QWidget* infoBox = createInfoBox(
+        "FluidSynth is an embedded software synthesizer. "
+        "Select a soundfont file (.sf2) to use FluidSynth for MIDI playback. "
+        "Then select 'FluidSynth (embedded)' from the output ports above."
+    );
+    fsLayout->addWidget(infoBox, 1, 0, 1, 3);
+
+    // Soundfont path
+    fsLayout->addWidget(new QLabel("Soundfont (.sf2):", _fluidSynthSettingsWidget),
+                        2, 0, 1, 1);
+
+    _soundfontPathEdit = new QLineEdit(_fluidSynthSettingsWidget);
+    _soundfontPathEdit->setReadOnly(true);
+    fsLayout->addWidget(_soundfontPathEdit, 2, 1, 1, 1);
+
+    _soundfontBrowseButton = new QPushButton("Browse...", _fluidSynthSettingsWidget);
+    connect(_soundfontBrowseButton, SIGNAL(clicked()), this, SLOT(browseSoundfont()));
+    fsLayout->addWidget(_soundfontBrowseButton, 2, 2, 1, 1);
+
+    // Status label
+    _soundfontStatusLabel = new QLabel(_fluidSynthSettingsWidget);
+    fsLayout->addWidget(_soundfontStatusLabel, 3, 0, 1, 3);
+
+    // Volume control
+    fsLayout->addWidget(new QLabel("Volume:", _fluidSynthSettingsWidget), 4, 0, 1, 1);
+
+    _volumeSlider = new QSlider(Qt::Horizontal, _fluidSynthSettingsWidget);
+    _volumeSlider->setMinimum(0);
+    _volumeSlider->setMaximum(200);  // 0-200 represents 0.0-2.0 gain
+    _volumeSlider->setValue(50);     // Default 0.5 gain (50%)
+    _volumeSlider->setTickPosition(QSlider::TicksBelow);
+    _volumeSlider->setTickInterval(25);
+    connect(_volumeSlider, SIGNAL(valueChanged(int)), this, SLOT(volumeChanged(int)));
+    fsLayout->addWidget(_volumeSlider, 4, 1, 1, 1);
+
+    _volumeLabel = new QLabel("50%", _fluidSynthSettingsWidget);
+    _volumeLabel->setMinimumWidth(50);
+    fsLayout->addWidget(_volumeLabel, 4, 2, 1, 1);
+
+    _fluidSynthSettingsWidget->setLayout(fsLayout);
+
+    // Load saved settings
+    QSettings settings(QString("MidiEditor"), QString("NONE"));
+    QString savedPath = settings.value("fluidsynth_soundfont", "").toString();
+    if (!savedPath.isEmpty()) {
+        _soundfontPathEdit->setText(savedPath);
+    } else {
+        // Try to load default soundfont
+        FluidSynthBackend* fs = MidiOutput::fluidSynthBackend();
+        if (fs) {
+            QString defaultPath = fs->findDefaultSoundfont();
+            if (!defaultPath.isEmpty()) {
+                _soundfontPathEdit->setText(defaultPath);
+                settings.setValue("fluidsynth_soundfont", defaultPath);
+            }
+        }
+    }
+
+    // Load saved volume
+    int savedVolume = settings.value("fluidsynth_volume", 50).toInt();
+    _volumeSlider->setValue(savedVolume);
+
+    updateFluidSynthUI();
+}
+
+void MidiSettingsWidget::browseSoundfont()
+{
+    QSettings settings(QString("MidiEditor"), QString("NONE"));
+    QString lastDir = settings.value("fluidsynth_soundfont_dir",
+                                     QDir::homePath()).toString();
+
+    QString fileName = QFileDialog::getOpenFileName(
+        this,
+        "Select Soundfont File",
+        lastDir,
+        "SoundFont Files (*.sf2 *.SF2);;All Files (*.*)"
+    );
+
+    if (!fileName.isEmpty()) {
+        _soundfontPathEdit->setText(fileName);
+
+        // Save the directory for next time
+        QFileInfo fileInfo(fileName);
+        settings.setValue("fluidsynth_soundfont_dir", fileInfo.absolutePath());
+        settings.setValue("fluidsynth_soundfont", fileName);
+
+        // Load the soundfont
+        soundfontPathChanged();
+    }
+}
+
+void MidiSettingsWidget::soundfontPathChanged()
+{
+    QString path = _soundfontPathEdit->text();
+
+    if (path.isEmpty()) {
+        _soundfontStatusLabel->setText("");
+        return;
+    }
+
+    // Check if file exists
+    if (!QFile::exists(path)) {
+        _soundfontStatusLabel->setText(
+            "<font color='red'>Error: File not found</font>"
+        );
+        return;
+    }
+
+    // Try to load the soundfont
+    FluidSynthBackend* fs = MidiOutput::fluidSynthBackend();
+    if (fs) {
+        if (fs->loadSoundfont(path)) {
+            _soundfontStatusLabel->setText(
+                "<font color='green'>Soundfont loaded successfully</font>"
+            );
+        } else {
+            _soundfontStatusLabel->setText(
+                "<font color='red'>Error: " + fs->lastError() + "</font>"
+            );
+        }
+    }
+}
+
+void MidiSettingsWidget::updateFluidSynthUI()
+{
+    soundfontPathChanged();
+
+    // Update volume in backend
+    FluidSynthBackend* fs = MidiOutput::fluidSynthBackend();
+    if (fs) {
+        double gain = _volumeSlider->value() / 100.0;
+        fs->setGain(gain);
+    }
+}
+
+void MidiSettingsWidget::volumeChanged(int value)
+{
+    // Update label
+    _volumeLabel->setText(QString::number(value) + "%");
+
+    // Update FluidSynth gain
+    FluidSynthBackend* fs = MidiOutput::fluidSynthBackend();
+    if (fs) {
+        double gain = value / 100.0;  // Convert 0-200 to 0.0-2.0
+        fs->setGain(gain);
+    }
+
+    // Save to settings
+    QSettings settings(QString("MidiEditor"), QString("NONE"));
+    settings.setValue("fluidsynth_volume", value);
 }

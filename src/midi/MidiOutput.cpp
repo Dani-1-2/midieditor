@@ -27,10 +27,15 @@
 #include <vector>
 
 #include "rtmidi/RtMidi.h"
+#include "MidiOutputBackend.h"
+#include "RtMidiBackend.h"
+#include "FluidSynthBackend.h"
 
 #include "../MidiEvent/NoteOnEvent.h"
 #include "../MidiEvent/OffEvent.h"
 #include "SenderThread.h"
+#include <QSettings>
+#include <QFile>
 
 RtMidiOut* MidiOutput::_midiOut = 0;
 QString MidiOutput::_outPort = "";
@@ -40,15 +45,28 @@ bool MidiOutput::isAlternativePlayer = false;
 
 int MidiOutput::_stdChannel = 0;
 
+// Backend abstraction
+MidiOutputBackend* MidiOutput::_backend = nullptr;
+RtMidiBackend* MidiOutput::_rtMidiBackend = nullptr;
+FluidSynthBackend* MidiOutput::_fluidSynthBackend = nullptr;
+
 void MidiOutput::init()
 {
 
-    // RtMidiOut constructor
+    // Initialize RtMidi backend
     try {
         _midiOut = new RtMidiOut(RtMidi::UNSPECIFIED, QString("MidiEditor output").toStdString());
+        _rtMidiBackend = new RtMidiBackend();
     } catch (RtMidiError& error) {
         error.printMessage();
     }
+
+    // Initialize FluidSynth backend
+    _fluidSynthBackend = new FluidSynthBackend();
+
+    // Default to RtMidi backend
+    // _backend = _rtMidiBackend;
+
     _sender->start(QThread::TimeCriticalPriority);
 }
 
@@ -88,15 +106,14 @@ QStringList MidiOutput::outputPorts()
 
     QStringList ports;
 
-    // Check outputs.
-    unsigned int nPorts = _midiOut->getPortCount();
+    // Add RtMidi hardware ports
+    if (_rtMidiBackend) {
+        ports.append(_rtMidiBackend->availablePorts());
+    }
 
-    for (unsigned int i = 0; i < nPorts; i++) {
-
-        try {
-            ports.append(QString::fromStdString(_midiOut->getPortName(i)));
-        } catch (RtMidiError&) {
-        }
+    // Add FluidSynth virtual port
+    if (_fluidSynthBackend) {
+        ports.append(_fluidSynthBackend->availablePorts());
     }
 
     return ports;
@@ -105,28 +122,39 @@ QStringList MidiOutput::outputPorts()
 bool MidiOutput::setOutputPort(QString name)
 {
 
-    // try to find the port
-    unsigned int nPorts = _midiOut->getPortCount();
+    std::cout << "Output set " << name.toStdString() << "\n";
+    // Check if it's FluidSynth port
+    if (name == "FluidSynth (embedded)") {
+        if (_fluidSynthBackend && _fluidSynthBackend->selectPort(name)) {
+            _backend = _fluidSynthBackend;
+            _outPort = name;
 
-    for (unsigned int i = 0; i < nPorts; i++) {
+          // Load saved FluidSynth settings
+          QSettings settings(QString("MidiEditor"), QString("NONE"));
 
-        try {
+          // Load and set volume (convert 0-200 integer to 0.0-2.0 double)
+          int savedVolume = settings.value("fluidsynth_volume", 50).toInt();
+          _fluidSynthBackend->setGain(savedVolume / 100.0);
 
-            // if the current port has the given name, select it and close
-            // current port
-            if (_midiOut->getPortName(i) == name.toStdString()) {
-
-                _midiOut->closePort();
-                _midiOut->openPort(i);
-                _outPort = name;
-                return true;
-            }
-
-        } catch (RtMidiError&) {
+          // Load soundfont (will be applied when FluidSynth is initialized)
+          QString savedPath = settings.value("fluidsynth_soundfont", "").toString();
+          if (!QFile::exists(savedPath)) {
+              savedPath = _fluidSynthBackend->findDefaultSoundfont();
+          }
+          _fluidSynthBackend->loadSoundfont(savedPath);
+            return true;
         }
+        return false;
     }
 
-    // port not found
+    // Otherwise, use RtMidi backend
+    if (_rtMidiBackend && _rtMidiBackend->selectPort(name)) {
+        _backend = _rtMidiBackend;
+        _outPort = name;
+        return true;
+    }
+
+    // Port not found
     return false;
 }
 
@@ -138,19 +166,8 @@ QString MidiOutput::outputPort()
 void MidiOutput::sendEnqueuedCommand(QByteArray array)
 {
 
-    if (_outPort != "") {
-
-        // convert data to std::vector
-        std::vector<unsigned char> message;
-
-        foreach (char byte, array) {
-            message.push_back(byte);
-        }
-        try {
-            _midiOut->sendMessage(&message);
-        } catch (RtMidiError& error) {
-            error.printMessage();
-        }
+    if (_outPort != "" && _backend) {
+        _backend->sendMessage(array);
     }
 }
 
@@ -175,4 +192,9 @@ void MidiOutput::sendProgram(int channel, int prog)
 bool MidiOutput::isConnected()
 {
     return _outPort != "";
+}
+
+FluidSynthBackend* MidiOutput::fluidSynthBackend()
+{
+    return _fluidSynthBackend;
 }

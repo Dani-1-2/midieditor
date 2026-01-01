@@ -16,28 +16,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SENDERTHREAD_H_
-#define SENDERTHREAD_H_
+#ifndef RTMIDIBACKEND_H_
+#define RTMIDIBACKEND_H_
 
-#include <QQueue>
-#include <QThread>
-#include <QMutex>
-#include <QWaitCondition>
+#include "MidiOutputBackend.h"
 
-#include "MidiOutput.h"
+class RtMidiOut;
 
-class SenderThread : public QThread {
-
+/**
+ * MIDI output backend using RtMidi library for hardware MIDI devices.
+ */
+class RtMidiBackend : public MidiOutputBackend {
 public:
-    SenderThread();
-    void run();
-    void enqueue(MidiEvent* event);
+    RtMidiBackend();
+    ~RtMidiBackend() override;
+
+    QStringList availablePorts() override;
+    bool selectPort(QString portName) override;
+    QString selectedPort() override;
+    void sendMessage(const QByteArray& data) override;
+    void closePort() override;
+    bool isConnected() override;
 
 private:
-    QQueue<MidiEvent*>* _eventQueue;
-    QQueue<MidiEvent*>* _noteQueue;
-    QMutex _mutex;
-    QWaitCondition _condition;
+    RtMidiOut* _midiOut;
+    QString _selectedPort;
 };
 
 #endif

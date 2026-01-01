@@ -24,6 +24,9 @@
 #include <QObject>
 
 class MidiEvent;
+class MidiOutputBackend;
+class RtMidiBackend;
+class FluidSynthBackend;
 class RtMidiIn;
 class RtMidiOut;
 //class QStringList;
@@ -46,11 +49,19 @@ public:
     static void sendProgram(int channel, int prog);
     static bool isConnected();
 
+    // FluidSynth-specific access
+    static FluidSynthBackend* fluidSynthBackend();
+
 private:
     static QString _outPort;
     static RtMidiOut* _midiOut;
     static SenderThread* _sender;
     static int _stdChannel;
+
+    // Backend abstraction
+    static MidiOutputBackend* _backend;
+    static RtMidiBackend* _rtMidiBackend;
+    static FluidSynthBackend* _fluidSynthBackend;
 };
 
 #endif
