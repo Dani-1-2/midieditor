@@ -448,6 +448,10 @@ MainWindow::MainWindow(QString initFile)
     lowerTabWidget->addTab(_eventWidget, "Event");
     MidiEvent::setEventWidget(_eventWidget);
 
+    // Connect selection changes to status bar updates
+    connect(_eventWidget, SIGNAL(selectionChanged(bool)), this, SLOT(updateStatusBar()));
+    connect(_eventWidget, SIGNAL(selectionChangedByTool(bool)), this, SLOT(updateStatusBar()));
+
     // below add two rows for choosing track/channel new events shall be assigned to
     QWidget* chooser = new QWidget(rightSplitter);
     chooser->setMinimumWidth(350);
@@ -485,6 +489,11 @@ MainWindow::MainWindow(QString initFile)
         SLOT(scrollPositionsChanged(int, int, int, int)));
 
     setCentralWidget(central);
+
+    // Initialize status bar
+    _statusBar = new QStatusBar(this);
+    setStatusBar(_statusBar);
+    _statusBar->showMessage("Ready");
 
     QWidget* buttons = setupActions(central);
 
@@ -3342,4 +3351,60 @@ void MainWindow::navigateSelectionLeft() {
 
 void MainWindow::navigateSelectionRight() {
     selectionNavigator->right();
+}
+
+void MainWindow::updateStatusBar() {
+    if (!_statusBar) {
+        return;
+    }
+
+    QList<MidiEvent*> selectedEvents = Selection::instance()->selectedEvents();
+
+    if (selectedEvents.isEmpty()) {
+        _statusBar->showMessage("No selection");
+        return;
+    }
+
+    // Get the first selected event to show its info
+    MidiEvent* firstEvent = selectedEvents.first();
+
+    if (!firstEvent) {
+        _statusBar->showMessage("No selection");
+        return;
+    }
+
+    QString message;
+
+    // Get channel information
+    int channel = firstEvent->channel();
+    QString channelStr = (channel >= 0 && channel < 16)
+        ? QString("Channel: %1").arg(channel)
+        : QString("Channel: N/A");
+
+    // Get track information
+    MidiTrack* track = firstEvent->track();
+    QString trackStr;
+    if (track) {
+        QString trackName = track->name();
+        int trackNum = track->number();
+        if (!trackName.isEmpty()) {
+            trackStr = QString("Track: %1 (%2)").arg(trackNum).arg(trackName);
+        } else {
+            trackStr = QString("Track: %1").arg(trackNum);
+        }
+    } else {
+        trackStr = QString("Track: N/A");
+    }
+
+    // Combine information
+    if (selectedEvents.size() == 1) {
+        message = QString("%1 | %2").arg(trackStr).arg(channelStr);
+    } else {
+        message = QString("%1 | %2 | %3 events selected")
+            .arg(trackStr)
+            .arg(channelStr)
+            .arg(selectedEvents.size());
+    }
+
+    _statusBar->showMessage(message);
 }

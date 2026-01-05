@@ -23,6 +23,7 @@
 #include <QMainWindow>
 #include <QScrollBar>
 #include <QSettings>
+#include <QStatusBar>
 
 class MatrixWidget;
 class MidiEvent;
@@ -196,6 +197,8 @@ public slots:
     void navigateSelectionLeft();
     void navigateSelectionRight();
 
+    void updateStatusBar();
+
 protected:
     void closeEvent(QCloseEvent* event);
     void keyPressEvent(QKeyEvent* e);
@@ -241,6 +244,8 @@ private:
 
     TweakTarget* currentTweakTarget;
     SelectionNavigator* selectionNavigator;
+
+    QStatusBar* _statusBar;
 };
 
 #endif
