@@ -588,6 +588,18 @@ void MainWindow::setFile(MidiFile* file)
     mw_matrixWidget->update();
     _miscWidget->update();
     checkEnableActionsForSelection();
+
+    // Reset MIDI output channel programs and apply initial program changes
+    if (MidiOutput::isConnected()) {
+        MidiOutput::resetChannelPrograms();
+        // Send program change events from the beginning of the file
+        for (int ch = 0; ch < 16; ch++) {
+            int prog = file->channel(ch)->progAtTick(0);
+            if (prog >= 0) {
+                MidiOutput::sendProgram(ch, prog);
+            }
+        }
+    }
 }
 
 MidiFile* MainWindow::getFile()

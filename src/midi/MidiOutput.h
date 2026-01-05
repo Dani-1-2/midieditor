@@ -47,6 +47,7 @@ public:
     static void setStandardChannel(int channel);
     static int standardChannel();
     static void sendProgram(int channel, int prog);
+    static void resetChannelPrograms();
     static bool isConnected();
 
     // FluidSynth-specific access
