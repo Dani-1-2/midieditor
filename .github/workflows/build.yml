@@ -37,6 +37,9 @@ jobs:
         wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
         chmod +x linuxdeploy*.AppImage
 
+        # Copy icon with the name expected by the desktop file
+        cp packaging/unix/midieditor/logo48.png packaging/unix/midieditor/midieditor.png
+
         # Set up environment for linuxdeploy
         export VERSION=$(git describe --tags --always)
         export QMAKE=/usr/bin/qmake6
@@ -46,7 +49,7 @@ jobs:
           --appdir AppDir \
           --executable MidiEditor \
           --desktop-file packaging/unix/midieditor/MidiEditor.desktop \
-          --icon-file packaging/unix/midieditor/logo48.png \
+          --icon-file packaging/unix/midieditor/midieditor.png \
           --plugin qt \
           --output appimage
 
