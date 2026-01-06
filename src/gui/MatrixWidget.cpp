@@ -723,9 +723,16 @@ void MatrixWidget::paintPianoKey(QPainter* painter, int number, int x, int y,
         }
 
         bool selected = mouseY >= y && mouseY <= y + height && mouseX > lineNameWidth && mouseOver;
+        QColor selectionColor;
         foreach (MidiEvent* event, Selection::instance()->selectedEvents()) {
             if (event->line() == 127 - number) {
                 selected = true;
+                // Get the color from the event's track or channel
+                if (event->track() && !_colorsByChannels) {
+                    selectionColor = *event->track()->color();
+                } else if (event->channel() >= 0 && event->channel() < 16 && file) {
+                    selectionColor = *file->channel(event->channel())->color();
+                }
                 break;
             }
         }
@@ -783,7 +790,11 @@ void MatrixWidget::paintPianoKey(QPainter* painter, int number, int x, int y,
             if (inRect) {
                 painter->setBrush(Qt::lightGray);
             } else if (selected) {
-                painter->setBrush(Qt::darkGray);
+                if (selectionColor.isValid()) {
+                    painter->setBrush(selectionColor);
+                } else {
+                    painter->setBrush(Qt::darkGray);
+                }
             } else {
                 painter->setBrush(Qt::black);
             }
@@ -791,7 +802,11 @@ void MatrixWidget::paintPianoKey(QPainter* painter, int number, int x, int y,
             if (inRect) {
                 painter->setBrush(Qt::darkGray);
             } else if (selected) {
-                painter->setBrush(Qt::lightGray);
+                if (selectionColor.isValid()) {
+                    painter->setBrush(selectionColor);
+                } else {
+                    painter->setBrush(Qt::lightGray);
+                }
             } else {
                 painter->setBrush(Qt::white);
             }
