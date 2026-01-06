@@ -48,7 +48,7 @@ jobs:
         # Create AppImage
         ./linuxdeploy-x86_64.AppImage \
           --appdir AppDir \
-          --executable MidiEditor \
+          --executable midieditor \
           --desktop-file packaging/unix/midieditor/MidiEditor.desktop \
           --icon-file packaging/unix/midieditor/midieditor.png \
           --plugin qt \
