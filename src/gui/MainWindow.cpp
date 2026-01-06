@@ -1621,7 +1621,7 @@ void MainWindow::updateChannelMenu()
     foreach (QAction* action, _deleteChannelMenu->actions()) {
         int channel = action->data().toInt();
         if (file) {
-            action->setText(QString::number(channel) + " " + MidiFile::instrumentName(file->channel(channel)->progAtTick(0)));
+            action->setText(QString::number(channel) + " " + MidiFile::instrumentName(channel, file->channel(channel)->progAtTick(0)));
         }
     }
 
@@ -1629,7 +1629,7 @@ void MainWindow::updateChannelMenu()
     foreach (QAction* action, _moveSelectedEventsToChannelMenu->actions()) {
         int channel = action->data().toInt();
         if (file) {
-            action->setText(QString::number(channel) + " " + MidiFile::instrumentName(file->channel(channel)->progAtTick(0)));
+            action->setText(QString::number(channel) + " " + MidiFile::instrumentName(channel, file->channel(channel)->progAtTick(0)));
         }
     }
 
@@ -1637,7 +1637,7 @@ void MainWindow::updateChannelMenu()
     foreach (QAction* action, _pasteToChannelMenu->actions()) {
         int channel = action->data().toInt();
         if (file && channel >= 0) {
-            action->setText(QString::number(channel) + " " + MidiFile::instrumentName(file->channel(channel)->progAtTick(0)));
+            action->setText(QString::number(channel) + " " + MidiFile::instrumentName(channel, file->channel(channel)->progAtTick(0)));
         }
     }
 
@@ -1645,7 +1645,7 @@ void MainWindow::updateChannelMenu()
     foreach (QAction* action, _selectAllFromChannelMenu->actions()) {
         int channel = action->data().toInt();
         if (file) {
-            action->setText(QString::number(channel) + " " + MidiFile::instrumentName(file->channel(channel)->progAtTick(0)));
+            action->setText(QString::number(channel) + " " + MidiFile::instrumentName(channel, file->channel(channel)->progAtTick(0)));
         }
     }
 
