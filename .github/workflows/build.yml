@@ -1,0 +1,100 @@
+name: Build MidiEditor
+
+on:
+  push:
+    branches: [ master, ui-enhancements ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Build on Linux
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Qt6 and dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          qt6-base-dev \
+          qt6-multimedia-dev \
+          libasound2-dev \
+          libfluidsynth-dev \
+          build-essential
+
+    - name: Build project
+      run: |
+        qmake6
+        make -j$(nproc)
+
+    - name: Upload Linux binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: MidiEditor-Linux-x64
+        path: MidiEditor
+        retention-days: 30
+
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Qt6
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.5.*'
+        modules: 'qtmultimedia'
+
+    - name: Install FluidSynth
+      run: |
+        choco install fluidsynth
+
+    - name: Build project
+      run: |
+        qmake
+        nmake
+      shell: cmd
+
+    - name: Upload Windows binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: MidiEditor-Windows-x64
+        path: bin/MidiEditor.exe
+        retention-days: 30
+
+  build-macos:
+    name: Build on macOS
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Qt6
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.5.*'
+        modules: 'qtmultimedia'
+
+    - name: Install FluidSynth
+      run: |
+        brew install fluid-synth
+
+    - name: Build project
+      run: |
+        qmake
+        make -j$(sysctl -n hw.ncpu)
+
+    - name: Upload macOS binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: MidiEditor-macOS
+        path: MidiEditor.app
+        retention-days: 30
