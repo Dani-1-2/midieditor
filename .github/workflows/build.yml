@@ -30,11 +30,34 @@ jobs:
         qmake6
         make -j$(nproc)
 
-    - name: Upload Linux binary
+    - name: Create AppImage
+      run: |
+        # Download linuxdeploy and Qt plugin
+        wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+        wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+        chmod +x linuxdeploy*.AppImage
+
+        # Set up environment for linuxdeploy
+        export VERSION=$(git describe --tags --always)
+        export QMAKE=/usr/bin/qmake6
+
+        # Create AppImage
+        ./linuxdeploy-x86_64.AppImage \
+          --appdir AppDir \
+          --executable MidiEditor \
+          --desktop-file packaging/unix/midieditor/MidiEditor.desktop \
+          --icon-file packaging/unix/midieditor/logo48.png \
+          --plugin qt \
+          --output appimage
+
+        # Rename AppImage to a more user-friendly name
+        mv MidiEditor-*.AppImage MidiEditor-Linux-x86_64.AppImage
+
+    - name: Upload AppImage
       uses: actions/upload-artifact@v4
       with:
-        name: MidiEditor-Linux-x64
-        path: MidiEditor
+        name: MidiEditor-Linux-x64-AppImage
+        path: MidiEditor-Linux-x86_64.AppImage
         retention-days: 30
 
   # build-windows:
