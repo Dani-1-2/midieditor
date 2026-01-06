@@ -1,5 +1,6 @@
 TEMPLATE = app
 TARGET = MidiEditor
+CONFIG += c++17
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 QT += core \
     gui \
@@ -9,7 +10,8 @@ QT += core \
 #DEFINES += ENABLE_REMOTE
 HEADERS += $$files(**.h, true)
 SOURCES += $$files(**.cpp, true)
-FORMS += 
+SOURCES -= qrc_resources.cpp
+FORMS +=
 RESOURCES += resources.qrc
 message(get arch)
 message($$(OVERRIDE_ARCH))
@@ -65,6 +67,7 @@ unix:!macx {
     DEFINES += __LINUX_ALSASEQ__
     DEFINES += __LINUX_ALSA__
     LIBS += -lasound
+    LIBS += -lfluidsynth
     CONFIG += release
     OBJECTS_DIR = .tmp
     MOC_DIR = .tmp
@@ -73,6 +76,7 @@ unix:!macx {
 win32: {
     DEFINES += __WINDOWS_MM__
     LIBS += -lwinmm
+    LIBS += -lfluidsynth
     CONFIG += release
     RC_FILE = midieditor.rc
     OBJECTS_DIR = .tmp
@@ -83,6 +87,7 @@ win32: {
 macx: {
     DEFINES += __MACOSX_CORE__
     LIBS += -framework CoreMidi -framework CoreAudio -framework CoreFoundation
+    LIBS += -lfluidsynth
     CONFIG += release
     OBJECTS_DIR = .tmp
     MOC_DIR = .tmp

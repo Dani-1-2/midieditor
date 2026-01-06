@@ -43,7 +43,8 @@ SettingsDialog::SettingsDialog(QString title, QSettings* settings, RemoteServer*
 
     _settingsWidgets = new QList<SettingsWidget*>;
 
-    setMinimumHeight(400);
+    setMinimumHeight(600);
+    setMinimumWidth(800);
 
     QGridLayout* layout = new QGridLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
