@@ -39,6 +39,7 @@ jobs:
 
         # Copy icon with the name expected by the desktop file
         cp packaging/unix/midieditor/logo48.png packaging/unix/midieditor/midieditor.png
+        mv MidiEditor midieditor
 
         # Set up environment for linuxdeploy
         export VERSION=$(git describe --tags --always)
