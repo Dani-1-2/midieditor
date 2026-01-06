@@ -23,6 +23,7 @@
 
 #include <QApplication>
 #include <QColor>
+#include <QContextMenuEvent>
 #include <QMap>
 #include <QMouseEvent>
 #include <QPaintEvent>
@@ -103,11 +104,15 @@ protected:
     void keyPressEvent(QKeyEvent* e);
     void keyReleaseEvent(QKeyEvent* event);
     void wheelEvent(QWheelEvent* event);
+    void contextMenuEvent(QContextMenuEvent* event);
 
 private:
     void paintChannel(QPainter* painter, int channel);
     void paintPianoKey(QPainter* painter, int number, int x, int y,
         int width, int height);
+
+    NoteOnEvent* findPreviousNoteInTrack(NoteOnEvent* note);
+    NoteOnEvent* findNextNoteInTrack(NoteOnEvent* note);
 
     int startTick, endTick, startTimeX, endTimeX, startLineY, endLineY,
         lineNameWidth, timeHeight, msOfFirstEventInList;
