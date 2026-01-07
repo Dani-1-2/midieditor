@@ -628,6 +628,11 @@ void MatrixWidget::paintPianoKey(QPainter* painter, int number, int x, int y,
 {
     int borderRight = 10;
     width = width - borderRight;
+
+    EventMoveTool* moveTool = nullptr;
+    if (Tool::currentTool()) moveTool = dynamic_cast<EventMoveTool*>(Tool::currentTool());
+    bool selectedAndCanMove = moveTool && moveTool->isDragging() && moveTool->canMoveUpDown();
+
     if (number >= 0 && number <= 127) {
 
         double scaleHeightBlack = 0.5;
@@ -728,11 +733,9 @@ void MatrixWidget::paintPianoKey(QPainter* painter, int number, int x, int y,
         bool isDraggedDestination = false;
 
         // Check if any dragged notes will land on this key
-        EventMoveTool* moveTool = nullptr;
         int nLines = 0;
         if (Tool::currentTool()) {
-            moveTool = dynamic_cast<EventMoveTool*>(Tool::currentTool());
-            if (moveTool && moveTool->isDragging() && moveTool->canMoveUpDown()) {
+            if (selectedAndCanMove) {
                 int shiftY = moveTool->getStartY() - moveTool->getMouseY();
                 nLines = qAbs(shiftY) / lineHeight();
                 if (shiftY < 0) {
@@ -771,7 +774,7 @@ void MatrixWidget::paintPianoKey(QPainter* painter, int number, int x, int y,
                         selectionColor = *file->channel(event->channel())->color();
                     }
                     // Make it lighter if we're dragging
-                    if (moveTool && moveTool->isDragging() && moveTool->canMoveUpDown()) {
+                    if (selectedAndCanMove) {
                         selectionColor = selectionColor.lighter(150);
                     }
                     break;
