@@ -886,6 +886,9 @@ QList<QPair<QString, EventWidget::EditorField> > EventWidget::getFields()
         fields.append(QPair<QString, EditorField>("Data", MidiEventData));
         break;
     }
+    case MidiEventType:
+    default:
+        break;
     }
     fields.append(QPair<QString, EditorField>("Track", MidiEventTrack));
     return fields;

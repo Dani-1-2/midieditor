@@ -1488,7 +1488,6 @@ NoteOnEvent* MatrixWidget::findPreviousNoteInTrack(NoteOnEvent* note)
 
     MidiTrack* track = note->track();
     int currentTick = note->midiTime();
-    NoteOnEvent* prevNote = nullptr;
 
     for (int channel = 0; channel < 16; channel++) {
         QMultiMap<int, MidiEvent*>* map = file->channelEvents(channel);

@@ -1,5 +1,6 @@
 #include "ChordDetector.h"
 #include <QSet>
+#include <QDebug>
 #include <algorithm>
 
 QString ChordDetector::detectChord(QList<int> notes) {
@@ -22,12 +23,11 @@ QString ChordDetector::detectChord(QList<int> notes) {
 
     // Try each note as a potential root
     for (int i = 0; i < normalizedNotes.size(); i++) {
-        int root = normalizedNotes[i];
         QList<int> intervals = getIntervals(normalizedNotes);
 
         QString chordType = identifyChordType(intervals);
         if (!chordType.isEmpty()) {
-            QString rootName = getNoteName(root);
+            QString rootName = getNoteName(normalizedNotes[0]);
             return rootName + chordType;
         }
 
@@ -81,43 +81,49 @@ QString ChordDetector::identifyChordType(const QList<int>& intervals) {
     QList<int> sortedIntervals = intervals;
     std::sort(sortedIntervals.begin(), sortedIntervals.end());
 
+    // Debug output
+    qDebug() << "\nnChord detection - Intervals:";
+    for (int i = 0; i < sortedIntervals.size(); i++) {
+        qDebug() << "  sortedIntervals[" << i << "] =" << sortedIntervals[i];
+    }
+
     // 2-note chords (dyads/power chords)
     if (sortedIntervals.size() == 1) {
-        if (sortedIntervals == QList<int>{5}) return " (5th)"; // Power chord
-        if (sortedIntervals == QList<int>{7}) return " (5th)"; // Perfect fifth
-        if (sortedIntervals == QList<int>{3}) return "m"; // Minor third
-        if (sortedIntervals == QList<int>{4}) return ""; // Major third
+        if (sortedIntervals[0] == 5) return " (5th)"; // Power chord
+        if (sortedIntervals[0] == 7) return " (5th)"; // Perfect fifth
+        if (sortedIntervals[0] == 3) return "m"; // Minor third
+        if (sortedIntervals[0] == 4) return ""; // Major third
     }
 
     // 3-note chords (triads)
     if (sortedIntervals.size() == 2) {
-        if (sortedIntervals == QList<int>{3, 7}) return "m"; // Minor
-        if (sortedIntervals == QList<int>{4, 7}) return ""; // Major
-        if (sortedIntervals == QList<int>{3, 6}) return "dim"; // Diminished
-        if (sortedIntervals == QList<int>{4, 8}) return "aug"; // Augmented
-        if (sortedIntervals == QList<int>{2, 7}) return "sus2"; // Sus2
-        if (sortedIntervals == QList<int>{5, 7}) return "sus4"; // Sus4
+        if (sortedIntervals[0] == 3 && sortedIntervals[1] == 7) return "m"; // Minor
+        if (sortedIntervals[0] == 4 && sortedIntervals[1] == 7) return ""; // Major
+        if (sortedIntervals[0] == 3 && sortedIntervals[1] == 6) return "dim"; // Diminished
+        if (sortedIntervals[0] == 4 && sortedIntervals[1] == 8) return "aug"; // Augmented
+        if (sortedIntervals[0] == 2 && sortedIntervals[1] == 7) return "sus2"; // Sus2
+        if (sortedIntervals[0] == 5 && sortedIntervals[1] == 7) return "sus4"; // Sus4
     }
 
     // 4-note chords (seventh chords)
     if (sortedIntervals.size() == 3) {
-        if (sortedIntervals == QList<int>{4, 7, 11}) return "maj7"; // Major 7th
-        if (sortedIntervals == QList<int>{3, 7, 10}) return "m7"; // Minor 7th
-        if (sortedIntervals == QList<int>{4, 7, 10}) return "7"; // Dominant 7th
-        if (sortedIntervals == QList<int>{3, 6, 10}) return "m7b5"; // Half-diminished
-        if (sortedIntervals == QList<int>{3, 6, 9}) return "dim7"; // Diminished 7th
-        if (sortedIntervals == QList<int>{3, 7, 11}) return "mmaj7"; // Minor major 7th
-        if (sortedIntervals == QList<int>{4, 8, 10}) return "aug7"; // Augmented 7th
-        if (sortedIntervals == QList<int>{4, 8, 11}) return "augmaj7"; // Augmented major 7th
+        if (sortedIntervals[0] == 4 && sortedIntervals[1] == 7 && sortedIntervals[2] == 11) return "maj7"; // Major 7th
+        if (sortedIntervals[0] == 3 && sortedIntervals[1] == 7 && sortedIntervals[2] == 10) return "m7"; // Minor 7th
+        if (sortedIntervals[0] == 4 && sortedIntervals[1] == 7 && sortedIntervals[2] == 10) return "7"; // Dominant 7th
+        if (sortedIntervals[0] == 3 && sortedIntervals[1] == 6 && sortedIntervals[2] == 10) return "m7b5"; // Half-diminished
+        if (sortedIntervals[0] == 3 && sortedIntervals[1] == 6 && sortedIntervals[2] == 9) return "dim7"; // Diminished 7th
+        if (sortedIntervals[0] == 3 && sortedIntervals[1] == 7 && sortedIntervals[2] == 11) return "mmaj7"; // Minor major 7th
+        if (sortedIntervals[0] == 4 && sortedIntervals[1] == 8 && sortedIntervals[2] == 10) return "aug7"; // Augmented 7th
+        if (sortedIntervals[0] == 4 && sortedIntervals[1] == 8 && sortedIntervals[2] == 11) return "augmaj7"; // Augmented major 7th
     }
 
     // Extended chords (9th, 11th, 13th)
     if (sortedIntervals.size() == 4) {
-        if (sortedIntervals == QList<int>{2, 4, 7, 10}) return "9"; // Dominant 9th
-        if (sortedIntervals == QList<int>{2, 4, 7, 11}) return "maj9"; // Major 9th
-        if (sortedIntervals == QList<int>{2, 3, 7, 10}) return "m9"; // Minor 9th
-        if (sortedIntervals == QList<int>{1, 4, 7, 10}) return "7b9"; // Dominant 7th flat 9
-        if (sortedIntervals == QList<int>{3, 4, 7, 10}) return "7#9"; // Dominant 7th sharp 9
+        if (sortedIntervals[0] == 2 && sortedIntervals[1] == 4 && sortedIntervals[2] == 7 && sortedIntervals[3] == 10) return "9"; // Dominant 9th
+        if (sortedIntervals[0] == 2 && sortedIntervals[1] == 4 && sortedIntervals[2] == 7 && sortedIntervals[3] == 11) return "maj9"; // Major 9th
+        if (sortedIntervals[0] == 2 && sortedIntervals[1] == 3 && sortedIntervals[2] == 7 && sortedIntervals[3] == 10) return "m9"; // Minor 9th
+        if (sortedIntervals[0] == 1 && sortedIntervals[1] == 4 && sortedIntervals[2] == 7 && sortedIntervals[3] == 10) return "7b9"; // Dominant 7th flat 9
+        if (sortedIntervals[0] == 3 && sortedIntervals[1] == 4 && sortedIntervals[2] == 7 && sortedIntervals[3] == 10) return "7#9"; // Dominant 7th sharp 9
     }
 
     return QString();
