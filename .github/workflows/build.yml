@@ -25,7 +25,8 @@ jobs:
           qt6-multimedia-dev \
           libasound2-dev \
           libfluidsynth-dev \
-          build-essential
+          build-essential \
+          wget
 
     - name: Build project
       run: |
