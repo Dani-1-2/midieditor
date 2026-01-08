@@ -11,7 +11,7 @@ jobs:
     name: Build on Linux
     runs-on: ubuntu-latest
     container:
-      image: debian:testing-backports
+      image: debian:stable-backports
       options: --privileged
 
     steps:
