@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: debian:testing-backports
+      options: --privileged
 
     steps:
     - name: Checkout code
