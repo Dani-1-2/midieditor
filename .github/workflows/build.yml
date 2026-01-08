@@ -27,7 +27,7 @@ jobs:
           libasound2-dev \
           libfluidsynth-dev \
           build-essential \
-          wget
+          wget file
 
     - name: Build project
       run: |
