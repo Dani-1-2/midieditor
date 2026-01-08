@@ -33,6 +33,13 @@ jobs:
     - name: Create AppImage
       run: ./scripts/build-appimage.sh
 
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: MidiEditor-Linux-x64-binary
+        path: MidiEditor
+        retention-days: 30
+
     - name: Upload AppImage
       uses: actions/upload-artifact@v4
       with:
