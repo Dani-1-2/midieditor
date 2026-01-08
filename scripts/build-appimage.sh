@@ -13,9 +13,8 @@ mv MidiEditor midieditor
 #export LINUXDEPLOY_OUTPUT_VERSION=$(git describe --tags --always)
 export QMAKE=/usr/bin/qmake6
 export QML_SOURCES_PATHS=.
-export QT_QPA_PLATFORM=xcb
-export EXTRA_QT_PLUGINS="multimedia;wayland"
-export NO_STRIP=true
+# export QT_QPA_PLATFORM=xcb
+export EXTRA_QT_PLUGINS="multimedia;xcb"
 
 # Create AppImage
 ./linuxdeploy-x86_64.AppImage \
