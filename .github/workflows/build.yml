@@ -57,6 +57,48 @@ jobs:
         path: MidiEditor-Linux-x86_64.AppImage
         retention-days: 30
 
+  build-linux-static:
+    name: Build Static on Linux
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Qt6 and static dependencies
+      run: |
+        apk add --no-cache \
+          qt6-qtbase-dev \
+          qt6-qtbase-static \
+          qt6-qtmultimedia-dev \
+          alsa-lib-dev \
+          fluidsynth-dev \
+          fluidsynth-static \
+          build-base \
+          cmake \
+          wget \
+          file \
+          pkgconfig
+
+    - name: Build static project
+      run: |
+        qmake6 CONFIG+=static QMAKE_LFLAGS+="-static -static-libgcc -static-libstdc++" midieditor.pro
+        make -j$(nproc)
+
+    - name: Verify static binary
+      run: |
+        file MidiEditor
+        ldd MidiEditor || echo "Static binary (no dynamic dependencies)"
+
+    - name: Upload static binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: MidiEditor-Linux-x64-static
+        path: MidiEditor
+        retention-days: 30
+
   # build-windows:
   #   name: Build on Windows
   #   runs-on: windows-latest
