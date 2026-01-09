@@ -33,4 +33,4 @@ $LINUXDEPLOY_BIN \
   --output appimage
 
 # Rename AppImage to a more user-friendly name
-# mv MidiEditor-*.AppImage MidiEditor-Linux-x86_64.AppImage
+mv MidiEditor*.AppImage MidiEditor-Linux-x86_64.AppImage
