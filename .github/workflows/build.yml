@@ -67,30 +67,30 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install Qt6 and static dependencies
+    - name: Install build dependencies
       run: |
         apk add --no-cache \
           qt6-qtbase-dev \
-          qt6-qtbase-static \
           qt6-qtmultimedia-dev \
           alsa-lib-dev \
           fluidsynth-dev \
-          fluidsynth-static \
           build-base \
           cmake \
           wget \
           file \
-          pkgconfig
+          pkgconfig \
+          glib-static \
+          glib-dev
 
     - name: Build static project
       run: |
-        qmake6 CONFIG+=static QMAKE_LFLAGS+="-static -static-libgcc -static-libstdc++" midieditor.pro
-        make -j$(nproc)
+        qmake6 CONFIG+=static CONFIG+=create_prl CONFIG+=link_prl midieditor.pro
+        make -j$(nproc) LDFLAGS="-static"
 
-    - name: Verify static binary
+    - name: Verify binary
       run: |
         file MidiEditor
-        ldd MidiEditor || echo "Static binary (no dynamic dependencies)"
+        ldd MidiEditor || true
 
     - name: Upload static binary
       uses: actions/upload-artifact@v4
