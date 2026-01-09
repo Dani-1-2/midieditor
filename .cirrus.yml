@@ -30,5 +30,5 @@ build_linux_task:
   binary_artifacts:
     path: midieditor
 
-  appimage_artifacts:
+  upload_artifacts:
     path: MidiEditor-Linux-x86_64.AppImage
