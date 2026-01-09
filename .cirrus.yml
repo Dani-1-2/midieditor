@@ -1,5 +1,6 @@
 container:
   image: debian:stable-backports
+  privileged: true
 
 build_linux_task:
   name: Build on Linux
