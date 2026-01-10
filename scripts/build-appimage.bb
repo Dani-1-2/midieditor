@@ -35,10 +35,11 @@
 
     (println "Copying libs")
     (doseq [dep deps]
-      (println "Copy" dep "to" (str "AppDir" dep))
-      (sh-or-die "cp" dep (str "AppDir" dep)))
+      (println "Copy" dep "to" (str "AppDir/usr" dep))
+      (sh-or-die "cp" dep (str "AppDir/usr" dep)))
     (sh-or-die "patchelf" "--set-rpath" dir-libs "AppDir/usr/bin/midieditor")))
 
 (copy-dependencies-to-appimage)
-(sh-or-die "wget" "wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage")
+(sh-or-die "wget" "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage")
+(sh-or-die "chmod" "+x" "appimagetool-x86_64.AppImage")
 (sh-or-die "./appimagetool-x86_64.AppImage" "AppDir" "MidiEditor.AppImage")
