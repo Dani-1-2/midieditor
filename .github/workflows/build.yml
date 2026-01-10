@@ -40,8 +40,6 @@ jobs:
     - name: Install Babashka
       run: |
         curl -sL https://raw.githubusercontent.com/babashka/babashka/master/install | bash
-        mv bb /usr/local/bin/bb
-        chmod +x /usr/local/bin/bb
 
     - name: Build project
       run: |
