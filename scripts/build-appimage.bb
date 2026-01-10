@@ -29,7 +29,10 @@
                       (map #(str "$ORIGIN/.." %))
                       (str/join ":"))]
     (println "Creating directories in AppImage root")
-    (doseq [dir dirs] (shell/sh "mkdir" "-p" (str "AppDir/usr/" dir)))
+    (doseq [dir dirs]
+      (println "Creating directory" (str "AppDir/usr" dir))
+      (shell/sh "mkdir" "-p" (str "AppDir/usr" dir)))
+
     (println "Copying libs")
     (doseq [dep deps]
       (println "Copy" dep "to" (str "AppDir" dep))
