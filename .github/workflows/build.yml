@@ -33,7 +33,15 @@ jobs:
           libcap-dev \
           libqt63dcore6 \
           libqt6core6t64 \
-          wget file
+          patchelf \
+          wget file \
+          curl
+
+    - name: Install Babashka
+      run: |
+        curl -sL https://raw.githubusercontent.com/babashka/babashka/master/install | bash
+        mv bb /usr/local/bin/bb
+        chmod +x /usr/local/bin/bb
 
     - name: Build project
       run: |
@@ -41,7 +49,7 @@ jobs:
         make -j$(nproc)
 
     - name: Create AppImage
-      run: ./scripts/build-appimage.sh
+      run: bb scripts/build-appimage.bb
 
     - name: Upload binary
       uses: actions/upload-artifact@v4
@@ -55,48 +63,6 @@ jobs:
       with:
         name: MidiEditor-Linux-x64-AppImage
         path: MidiEditor-Linux-x86_64.AppImage
-        retention-days: 30
-
-  build-linux-static:
-    name: Build Static on Linux
-    runs-on: ubuntu-latest
-    container:
-      image: alpine:latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install build dependencies
-      run: |
-        apk add --no-cache \
-          qt6-qtbase-dev \
-          qt6-qtmultimedia-dev \
-          alsa-lib-dev \
-          fluidsynth-dev \
-          build-base \
-          cmake \
-          wget \
-          file \
-          pkgconfig \
-          glib-static \
-          glib-dev
-
-    - name: Build static project
-      run: |
-        qmake6 CONFIG+=static CONFIG+=create_prl CONFIG+=link_prl midieditor.pro
-        make -j$(nproc) LDFLAGS="-static"
-
-    - name: Verify binary
-      run: |
-        file MidiEditor
-        ldd MidiEditor || true
-
-    - name: Upload static binary
-      uses: actions/upload-artifact@v4
-      with:
-        name: MidiEditor-Linux-x64-static
-        path: MidiEditor
         retention-days: 30
 
   # build-windows:
