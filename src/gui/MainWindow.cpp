@@ -537,10 +537,15 @@ MainWindow::MainWindow(QString initFile)
 
 void MainWindow::loadInitFile()
 {
-    if (_initFile != "")
-        loadFile(_initFile);
-    else
-        newFile();
+    if (_initFile != "") {
+        openFile(_initFile);
+    } else {
+        // Create new empty file in this window
+        MidiFile* f = new MidiFile();
+        setFile(f);
+        editTrack(1);
+        setWindowTitle(QApplication::applicationName() + " - Untitled Document[*]");
+    }
 }
 
 void MainWindow::dropEvent(QDropEvent* ev)
@@ -1032,27 +1037,6 @@ void MainWindow::load()
     QString oldPath = startDirectory;
     if (file) {
         oldPath = file->path();
-        if (!file->saved()) {
-            switch (QMessageBox::question(this, "Save file?", "Save file " + file->path() + " before closing?", "Save", "Close without saving", "Cancel", 0, 2)) {
-            case 0: {
-                // save
-                if (QFile(file->path()).exists()) {
-                    file->save(file->path());
-                } else {
-                    saveas();
-                }
-                break;
-            }
-            case 1: {
-                // close
-                break;
-            }
-            case 2: {
-                // break
-                return;
-            }
-            }
-        }
     }
 
     QFile* f = new QFile(oldPath);
@@ -1060,41 +1044,24 @@ void MainWindow::load()
     if (f->exists()) {
         QFileInfo(*f).dir().path();
     }
+    delete f;
+
     QString newPath = QFileDialog::getOpenFileName(this, "Open file",
         dir, "MIDI Files(*.mid *.midi);;All Files(*)");
 
     if (!newPath.isEmpty()) {
-        openFile(newPath);
+        // Open in current window if no file or file is unmodified
+        if (!file || file->saved()) {
+            openFile(newPath);
+        } else {
+            MainWindow* newWindow = new MainWindow(newPath);
+            newWindow->showMaximized();
+        }
     }
 }
 
 void MainWindow::loadFile(QString nfile)
 {
-    QString oldPath = startDirectory;
-    if (file) {
-        oldPath = file->path();
-        if (!file->saved()) {
-            switch (QMessageBox::question(this, "Save file?", "Save file " + file->path() + " before closing?", "Save", "Close without saving", "Cancel", 0, 2)) {
-            case 0: {
-                // save
-                if (QFile(file->path()).exists()) {
-                    file->save(file->path());
-                } else {
-                    saveas();
-                }
-                break;
-            }
-            case 1: {
-                // close
-                break;
-            }
-            case 2: {
-                // break
-                return;
-            }
-            }
-        }
-    }
     if (!nfile.isEmpty()) {
         openFile(nfile);
     }
@@ -1296,37 +1263,8 @@ void MainWindow::setStartDir(QString dir)
 
 void MainWindow::newFile()
 {
-    if (file) {
-        if (!file->saved()) {
-            switch (QMessageBox::question(this, "Save file?", "Save file " + file->path() + " before closing?", "Save", "Close without saving", "Cancel", 0, 2)) {
-            case 0: {
-                // save
-                if (QFile(file->path()).exists()) {
-                    file->save(file->path());
-                } else {
-                    saveas();
-                }
-                break;
-            }
-            case 1: {
-                // close
-                break;
-            }
-            case 2: {
-                // break
-                return;
-            }
-            }
-        }
-    }
-
-    // create new File
-    MidiFile* f = new MidiFile();
-
-    setFile(f);
-
-    editTrack(1);
-    setWindowTitle(QApplication::applicationName() + " - Untitled Document[*]");
+    MainWindow* newWindow = new MainWindow();
+    newWindow->showMaximized();
 }
 
 void MainWindow::panic()
@@ -1583,36 +1521,16 @@ void MainWindow::updateRecentPathsList()
 
 void MainWindow::openRecent(QAction* action)
 {
-
     QString path = action->data().toString();
-
-    if (file) {
-        QString oldPath = file->path();
-
-        if (!file->saved()) {
-            switch (QMessageBox::question(this, "Save file?", "Save file " + file->path() + " before closing?", "Save", "Close without saving", "Cancel", 0, 2)) {
-            case 0: {
-                // save
-                if (QFile(file->path()).exists()) {
-                    file->save(file->path());
-                } else {
-                    saveas();
-                }
-                break;
-            }
-            case 1: {
-                // close
-                break;
-            }
-            case 2: {
-                // break
-                return;
-            }
-            }
+    if (!path.isEmpty()) {
+        // Open in current window if no file or file is unmodified
+        if (!file || file->saved()) {
+            openFile(path);
+        } else {
+            MainWindow* newWindow = new MainWindow(path);
+            newWindow->showMaximized();
         }
     }
-
-    openFile(path);
 }
 
 void MainWindow::updateChannelMenu()
