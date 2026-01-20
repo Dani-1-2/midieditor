@@ -22,7 +22,7 @@ private:
     static QList<int> getIntervals(const QList<int>& normalizedNotes);
 
     // Identify chord type from interval pattern
-    static QString identifyChordType(const QList<int>& intervals);
+    static QString identifyChordType(int base, const QList<int>& intervals);
 };
 
 #endif // CHORDDETECTOR_H
