@@ -45,6 +45,7 @@ class QShowEvent;
 class Update;
 class SelectionNavigator;
 class TweakTarget;
+class NewNoteTool;
 
 class MainWindow : public QMainWindow {
 
@@ -171,6 +172,8 @@ public slots:
     void quantizeNtoleDialog();
     void quantizeNtole();
 
+    void noteDurationChanged(QAction* action);
+
     void setSpeed(QAction*);
 
     void checkEnableActionsForSelection();
@@ -246,6 +249,7 @@ private:
     SelectionNavigator* selectionNavigator;
 
     QStatusBar* _statusBar;
+    NewNoteTool* _newNoteTool;
 };
 
 #endif

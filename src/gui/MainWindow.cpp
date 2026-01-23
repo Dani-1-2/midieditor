@@ -2392,7 +2392,8 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     toolsToolsMenu->addAction(stdToolAction);
     tool->buttonClick();
 
-    QAction* newNoteAction = new ToolButton(new NewNoteTool(), QKeySequence(Qt::Key_F2), toolsToolsMenu);
+    _newNoteTool = new NewNoteTool();
+    QAction* newNoteAction = new ToolButton(_newNoteTool, QKeySequence(Qt::Key_F2), toolsToolsMenu);
     toolsToolsMenu->addAction(newNoteAction);
     QAction* removeNotesAction = new ToolButton(new EraserTool(), QKeySequence(Qt::Key_F3), toolsToolsMenu);
     toolsToolsMenu->addAction(removeNotesAction);
@@ -2433,6 +2434,96 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     toolsToolsMenu->addAction(tempoAction);
 
     toolsMB->addMenu(toolsToolsMenu);
+
+    // Note Duration menu for quick note entry
+    QMenu* noteDurationMenu = new QMenu("Note Duration", toolsMB);
+    QActionGroup* noteDurationGroup = new QActionGroup(noteDurationMenu);
+    noteDurationGroup->setExclusive(true);
+
+    // Drag mode (no preset duration)
+    QAction* noteDurationDragAction = new QAction("Drag to set length", noteDurationMenu);
+    noteDurationDragAction->setData(0);
+    noteDurationDragAction->setCheckable(true);
+    noteDurationDragAction->setChecked(true);
+    noteDurationGroup->addAction(noteDurationDragAction);
+    noteDurationMenu->addAction(noteDurationDragAction);
+
+    noteDurationMenu->addSeparator();
+
+    // Whole note
+    QAction* noteDurationWholeAction = new QAction("Whole note (1)", noteDurationMenu);
+    noteDurationWholeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_1));
+    noteDurationWholeAction->setData(1);
+    noteDurationWholeAction->setCheckable(true);
+    noteDurationGroup->addAction(noteDurationWholeAction);
+    noteDurationMenu->addAction(noteDurationWholeAction);
+
+    // Half note
+    QAction* noteDurationHalfAction = new QAction("Half note (1/2)", noteDurationMenu);
+    noteDurationHalfAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_2));
+    noteDurationHalfAction->setData(2);
+    noteDurationHalfAction->setCheckable(true);
+    noteDurationGroup->addAction(noteDurationHalfAction);
+    noteDurationMenu->addAction(noteDurationHalfAction);
+
+    // Third note
+    QAction* noteDurationThirdAction = new QAction("Third note (1/3)", noteDurationMenu);
+    noteDurationThirdAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_3));
+    noteDurationThirdAction->setData(3);
+    noteDurationThirdAction->setCheckable(true);
+    noteDurationGroup->addAction(noteDurationThirdAction);
+    noteDurationMenu->addAction(noteDurationThirdAction);
+
+    // Quarter note
+    QAction* noteDurationQuarterAction = new QAction("Quarter note (1/4)", noteDurationMenu);
+    noteDurationQuarterAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_4));
+    noteDurationQuarterAction->setData(4);
+    noteDurationQuarterAction->setCheckable(true);
+    noteDurationGroup->addAction(noteDurationQuarterAction);
+    noteDurationMenu->addAction(noteDurationQuarterAction);
+
+    // Fifth note
+    QAction* noteDurationFifthAction = new QAction("Fifth note (1/5)", noteDurationMenu);
+    noteDurationFifthAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_5));
+    noteDurationFifthAction->setData(5);
+    noteDurationFifthAction->setCheckable(true);
+    noteDurationGroup->addAction(noteDurationFifthAction);
+    noteDurationMenu->addAction(noteDurationFifthAction);
+
+    // Sixth note
+    QAction* noteDurationSixthAction = new QAction("Sixth note (1/6)", noteDurationMenu);
+    noteDurationSixthAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_6));
+    noteDurationSixthAction->setData(6);
+    noteDurationSixthAction->setCheckable(true);
+    noteDurationGroup->addAction(noteDurationSixthAction);
+    noteDurationMenu->addAction(noteDurationSixthAction);
+
+    // Seventh note
+    QAction* noteDurationSeventhAction = new QAction("Seventh note (1/7)", noteDurationMenu);
+    noteDurationSeventhAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_7));
+    noteDurationSeventhAction->setData(7);
+    noteDurationSeventhAction->setCheckable(true);
+    noteDurationGroup->addAction(noteDurationSeventhAction);
+    noteDurationMenu->addAction(noteDurationSeventhAction);
+
+    // Eighth note
+    QAction* noteDurationEighthAction = new QAction("Eighth note (1/8)", noteDurationMenu);
+    noteDurationEighthAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_8));
+    noteDurationEighthAction->setData(8);
+    noteDurationEighthAction->setCheckable(true);
+    noteDurationGroup->addAction(noteDurationEighthAction);
+    noteDurationMenu->addAction(noteDurationEighthAction);
+
+    // Ninth note
+    QAction* noteDurationNinthAction = new QAction("Ninth note (1/9)", noteDurationMenu);
+    noteDurationNinthAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_9));
+    noteDurationNinthAction->setData(9);
+    noteDurationNinthAction->setCheckable(true);
+    noteDurationGroup->addAction(noteDurationNinthAction);
+    noteDurationMenu->addAction(noteDurationNinthAction);
+
+    connect(noteDurationMenu, SIGNAL(triggered(QAction*)), this, SLOT(noteDurationChanged(QAction*)));
+    toolsMB->addMenu(noteDurationMenu);
 
     // Tweak
 
@@ -3097,6 +3188,18 @@ void MainWindow::enableThru(bool enable)
 void MainWindow::quantizationChanged(QAction* action)
 {
     _quantizationGrid = action->data().toInt();
+}
+
+void MainWindow::noteDurationChanged(QAction* action)
+{
+    int divisor = action->data().toInt();
+    NewNoteTool::setNoteDurationDivisor(divisor);
+
+    // If a duration is selected (not drag mode), switch to NewNoteTool
+    if (divisor > 0 && _newNoteTool) {
+        Tool::setCurrentTool(_newNoteTool);
+        mw_matrixWidget->repaint();
+    }
 }
 
 void MainWindow::quantizeSelection()

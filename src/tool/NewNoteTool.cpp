@@ -40,6 +40,7 @@
 
 int NewNoteTool::_channel = 0;
 int NewNoteTool::_track = 0;
+int NewNoteTool::_noteDurationDivisor = 0;
 
 NewNoteTool::NewNoteTool()
     : EventTool()
@@ -76,13 +77,53 @@ void NewNoteTool::reloadState(ProtocolEntry* entry)
 void NewNoteTool::draw(QPainter* painter)
 {
     int currentX = rasteredX(mouseX);
+    int currentLine = matrixWidget->lineAtY(mouseY);
+
+    // Show preview when duration is set, even when not dragging
+    if (_noteDurationDivisor > 0 && currentLine >= 0 && currentLine <= 127 && !inDrag) {
+        int startTick;
+        rasteredX(currentX, &startTick);
+        int ticksPerQuarter = file()->ticksPerQuarter();
+        int durationTicks = (4 * ticksPerQuarter) / _noteDurationDivisor;
+        int endTick = startTick + durationTicks;
+        int endMs = file()->msOfTick(endTick);
+        int endX = matrixWidget->xPosOfMs(endMs);
+
+        int y = matrixWidget->yPosOfLine(currentLine);
+
+        // Draw semi-transparent preview
+        painter->setOpacity(0.5);
+        painter->fillRect(currentX, y, endX - currentX, matrixWidget->lineHeight(), Qt::darkBlue);
+        painter->setOpacity(1.0);
+
+        // Draw guide lines
+        painter->setPen(Qt::gray);
+        painter->drawLine(currentX, 0, currentX, matrixWidget->height());
+        painter->drawLine(endX, 0, endX, matrixWidget->height());
+        painter->setPen(Qt::black);
+        return;
+    }
+
+    // If preset duration is set during drag, calculate the end X position based on duration
+    int endX = currentX;
+    if (_noteDurationDivisor > 0 && line >= 0 && line <= 127) {
+        int startTick;
+        rasteredX(xPos, &startTick);
+        int ticksPerQuarter = file()->ticksPerQuarter();
+        int durationTicks = (4 * ticksPerQuarter) / _noteDurationDivisor;
+        int endTick = startTick + durationTicks;
+        int endMs = file()->msOfTick(endTick);
+        endX = matrixWidget->xPosOfMs(endMs);
+    }
+
     if (inDrag) {
         if (line <= 127) {
             int y = matrixWidget->yPosOfLine(line);
-            painter->fillRect(xPos, y, currentX - xPos, matrixWidget->lineHeight(), Qt::black);
+            int drawEndX = (_noteDurationDivisor > 0) ? endX : currentX;
+            painter->fillRect(xPos, y, drawEndX - xPos, matrixWidget->lineHeight(), Qt::black);
             painter->setPen(Qt::gray);
             painter->drawLine(xPos, 0, xPos, matrixWidget->height());
-            painter->drawLine(currentX, 0, currentX, matrixWidget->height());
+            painter->drawLine(drawEndX, 0, drawEndX, matrixWidget->height());
             painter->setPen(Qt::black);
         } else {
             int y = matrixWidget->yPosOfLine(line);
@@ -119,8 +160,18 @@ bool NewNoteTool::release()
     rasteredX(currentX, &endTick);
     rasteredX(xPos, &startTick);
 
+    // If a note duration divisor is set, calculate endTick based on it
+    // Duration = (4 / divisor) * ticksPerQuarter
+    // 1 = whole note, 2 = half note, 3 = 1/3 note, 4 = quarter note, etc.
+    bool usePresetDuration = (_noteDurationDivisor > 0 && line >= 0 && line <= 127);
+    if (usePresetDuration) {
+        int ticksPerQuarter = file()->ticksPerQuarter();
+        int durationTicks = (4 * ticksPerQuarter) / _noteDurationDivisor;
+        endTick = startTick + durationTicks;
+    }
+
     MidiTrack* track = file()->track(_track);
-    if (currentX - xPos > 2 || line > 127) {
+    if (currentX - xPos > 2 || line > 127 || usePresetDuration) {
 
         // note
         if (line >= 0 && line <= 127) {
@@ -130,6 +181,11 @@ bool NewNoteTool::release()
                 startTick, endTick, 100, track);
             selectEvent(on, true, true);
             currentProtocol()->endAction();
+
+            // If we used preset duration, reset to drag mode and return to standard tool
+            if (usePresetDuration) {
+                _noteDurationDivisor = 0;
+            }
 
             if (_standardTool) {
                 Tool::setCurrentTool(_standardTool);
@@ -274,7 +330,8 @@ bool NewNoteTool::release()
 bool NewNoteTool::move(int mouseX, int mouseY)
 {
     EventTool::move(mouseX, mouseY);
-    return inDrag;
+    // Repaint when dragging OR when showing duration preview
+    return inDrag || (_noteDurationDivisor > 0);
 }
 
 bool NewNoteTool::releaseOnly()
@@ -302,4 +359,30 @@ void NewNoteTool::setEditTrack(int i)
 void NewNoteTool::setEditChannel(int i)
 {
     _channel = i;
+}
+
+int NewNoteTool::noteDurationDivisor()
+{
+    return _noteDurationDivisor;
+}
+
+void NewNoteTool::setNoteDurationDivisor(int divisor)
+{
+    _noteDurationDivisor = divisor;
+}
+
+bool NewNoteTool::pressKey(int key)
+{
+    // Handle number keys 1-9 to set note duration
+    // 1 = whole note, 2 = half note, 3 = 1/3 note, 4 = quarter note, etc.
+    if (key >= Qt::Key_1 && key <= Qt::Key_9) {
+        _noteDurationDivisor = key - Qt::Key_0;
+        return true;  // repaint to update visual feedback
+    }
+    // Key 0 disables preset duration (back to drag mode)
+    if (key == Qt::Key_0) {
+        _noteDurationDivisor = 0;
+        return true;
+    }
+    return false;
 }

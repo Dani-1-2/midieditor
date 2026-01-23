@@ -41,11 +41,17 @@ public:
     static void setEditTrack(int i);
     static void setEditChannel(int i);
 
+    static int noteDurationDivisor();
+    static void setNoteDurationDivisor(int divisor);
+
+    bool pressKey(int key) override;
+
 private:
     bool inDrag;
     int line;
     int xPos;
     static int _channel, _track;
+    static int _noteDurationDivisor;  // 0 = use drag, 1 = whole, 2 = half, 3 = third, 4 = quarter, etc.
 };
 
 #endif
