@@ -54,6 +54,9 @@ public:
     static void enableMagnet(bool enable);
     static bool magnetEnabled();
 
+    static void enableSnapToNote(bool enable);
+    static bool snapToNoteEnabled();
+
     static QList<MidiEvent*>* copiedEvents;
 
 protected:
@@ -61,6 +64,7 @@ protected:
     static int _pasteChannel;
     static int _pasteTrack;
     static bool _magnet;
+    static bool _snapToNote;
 };
 
 #endif

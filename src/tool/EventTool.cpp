@@ -34,13 +34,15 @@
 #include "Selection.h"
 
 #include <QtCore/qmath.h>
+#include <climits>
 
 QList<MidiEvent*>* EventTool::copiedEvents = new QList<MidiEvent*>;
 
 int EventTool::_pasteChannel = -1;
-int EventTool::_pasteTrack = -2;
+int EventTool::_pasteTrack = -1;
 
 bool EventTool::_magnet = false;
+bool EventTool::_snapToNote = false;
 
 EventTool::EventTool()
     : EditorTool()
@@ -323,26 +325,63 @@ int EventTool::pasteChannel()
 
 int EventTool::rasteredX(int x, int* tick)
 {
-    if (!_magnet) {
-        if (tick) {
-            *tick = _currentFile->tick(matrixWidget->msOfXPos(x));
+    int bestX = x;
+    int bestTick = _currentFile->tick(matrixWidget->msOfXPos(x));
+    int bestDistance = INT_MAX;
+
+    // Snap to measure divisions if magnet is enabled
+    if (_magnet) {
+        typedef QPair<int, int> TMPPair;
+        foreach (TMPPair p, matrixWidget->divs()) {
+            int xt = p.first;
+            int distance = qAbs(xt - x);
+            if (distance <= 5 && distance < bestDistance) {
+                bestX = xt;
+                bestTick = p.second;
+                bestDistance = distance;
+            }
         }
+    }
+
+    // Snap to note boundaries if snap-to-note is enabled
+    if (_snapToNote) {
+        QList<MidiEvent*>* events = matrixWidget->activeEvents();
+        if (events) {
+            foreach (MidiEvent* event, *events) {
+                // Check note start position
+                int noteStartX = event->x();
+                int distance = qAbs(noteStartX - x);
+                if (distance <= 5 && distance < bestDistance) {
+                    bestX = noteStartX;
+                    bestTick = event->midiTime();
+                    bestDistance = distance;
+                }
+
+                // Check note end position (for notes with duration)
+                OnEvent* onEvent = dynamic_cast<OnEvent*>(event);
+                if (onEvent && onEvent->offEvent()) {
+                    int noteEndX = noteStartX + event->width();
+                    int endTick = onEvent->offEvent()->midiTime();
+                    distance = qAbs(noteEndX - x);
+                    if (distance <= 5 && distance < bestDistance) {
+                        bestX = noteEndX;
+                        bestTick = endTick;
+                        bestDistance = distance;
+                    }
+                }
+            }
+        }
+    }
+
+    if (tick) {
+        *tick = bestTick;
+    }
+
+    // If no snapping occurred, return original x
+    if (bestDistance == INT_MAX) {
         return x;
     }
-    typedef QPair<int, int> TMPPair;
-    foreach (TMPPair p, matrixWidget->divs()) {
-        int xt = p.first;
-        if (qAbs(xt - x) <= 5) {
-            if (tick) {
-                *tick = p.second;
-            }
-            return xt;
-        }
-    }
-    if (tick) {
-        *tick = _currentFile->tick(matrixWidget->msOfXPos(x));
-    }
-    return x;
+    return bestX;
 }
 
 void EventTool::enableMagnet(bool enable)
@@ -353,4 +392,14 @@ void EventTool::enableMagnet(bool enable)
 bool EventTool::magnetEnabled()
 {
     return _magnet;
+}
+
+void EventTool::enableSnapToNote(bool enable)
+{
+    _snapToNote = enable;
+}
+
+bool EventTool::snapToNoteEnabled()
+{
+    return _snapToNote;
 }

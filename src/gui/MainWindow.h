@@ -162,6 +162,7 @@ public slots:
     void quantizationChanged(QAction*);
 
     void enableMagnet(bool enable);
+    void enableSnapToNote(bool enable);
 
     void openConfig();
 

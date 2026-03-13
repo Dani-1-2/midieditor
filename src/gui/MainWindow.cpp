@@ -2744,7 +2744,7 @@ QWidget* MainWindow::setupActions(QWidget* parent)
 
     toolsMB->addSeparator();
 
-    QAction* magnetAction = new QAction("Magnet", editMB);
+    QAction* magnetAction = new QAction("Snap to Measure", editMB);
     toolsMB->addAction(magnetAction);
     magnetAction->setShortcut(QKeySequence(Qt::Key_M | Qt::CTRL));
     magnetAction->setIcon(QIcon(":/run_environment/graphics/tool/magnet.png"));
@@ -2752,6 +2752,13 @@ QWidget* MainWindow::setupActions(QWidget* parent)
     magnetAction->setChecked(false);
     magnetAction->setChecked(EventTool::magnetEnabled());
     connect(magnetAction, SIGNAL(toggled(bool)), this, SLOT(enableMagnet(bool)));
+
+    QAction* snapToNoteAction = new QAction("Snap to Note", editMB);
+    toolsMB->addAction(snapToNoteAction);
+    snapToNoteAction->setShortcut(QKeySequence(Qt::Key_N | Qt::CTRL | Qt::SHIFT));
+    snapToNoteAction->setCheckable(true);
+    snapToNoteAction->setChecked(EventTool::snapToNoteEnabled());
+    connect(snapToNoteAction, SIGNAL(toggled(bool)), this, SLOT(enableSnapToNote(bool)));
 
     // View
     QMenu* zoomMenu = new QMenu("Zoom...", viewMB);
@@ -3162,6 +3169,11 @@ void MainWindow::divChanged(QAction* action)
 void MainWindow::enableMagnet(bool enable)
 {
     EventTool::enableMagnet(enable);
+}
+
+void MainWindow::enableSnapToNote(bool enable)
+{
+    EventTool::enableSnapToNote(enable);
 }
 
 void MainWindow::openConfig()
