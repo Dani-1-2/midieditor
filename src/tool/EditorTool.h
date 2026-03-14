@@ -40,6 +40,8 @@ class MainWindow;
  */
 class EditorTool : public Tool {
 
+    friend class WindowContext;
+
 public:
     /**
 		 * \brief creates a new EditorTool.

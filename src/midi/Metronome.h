@@ -11,6 +11,8 @@ class MidiFile;
 class Metronome : public QObject {
     Q_OBJECT
 
+    friend class WindowContext;
+
 public:
     Metronome(QObject* parent = 0);
 

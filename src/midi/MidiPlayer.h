@@ -29,6 +29,7 @@ class SingleNotePlayer;
 class MidiPlayer : public QObject {
 
     Q_OBJECT
+    friend class WindowContext;
 
 public:
     static void play(MidiFile* file);

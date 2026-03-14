@@ -35,6 +35,8 @@ class MidiTrack;
 
 class MidiEvent : public ProtocolEntry, public GraphicObject {
 
+    friend class WindowContext;
+
 public:
     MidiEvent(int channel, MidiTrack* track);
     MidiEvent(MidiEvent& other);

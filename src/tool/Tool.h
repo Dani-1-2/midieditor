@@ -53,6 +53,8 @@ class StandardTool;
 
 class Tool : public ProtocolEntry {
 
+    friend class WindowContext;
+
 public:
     /**
 		 * \brief creates a new Tool.

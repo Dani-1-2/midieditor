@@ -23,6 +23,8 @@
 
 class NewNoteTool : public EventTool {
 
+    friend class WindowContext;
+
 public:
     NewNoteTool();
     NewNoteTool(NewNoteTool& other);

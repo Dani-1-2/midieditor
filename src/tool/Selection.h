@@ -9,6 +9,8 @@ class EventWidget;
 
 class Selection : public ProtocolEntry {
 
+    friend class WindowContext;
+
 public:
     Selection(MidiFile* file);
     Selection(Selection& other);

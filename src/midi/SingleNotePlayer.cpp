@@ -21,6 +21,8 @@
 #define SINGLE_NOTE_LENGTH_MS 2000
 
 #include "../MidiEvent/NoteOnEvent.h"
+#include "../midi/MidiFile.h"
+#include "../midi/MidiChannel.h"
 #include "MidiOutput.h"
 #include <QTimer>
 
@@ -41,6 +43,16 @@ void SingleNotePlayer::play(NoteOnEvent* event)
         timer->stop();
     }
     offMessage = event->saveOffEvent();
+    // Send the correct program change for this note's channel before playing,
+    // so the synth uses the right instrument (critical for multi-window support)
+    MidiFile* f = event->file();
+    if (f) {
+        int ch = event->channel();
+        int prog = f->channel(ch)->progAtTick(event->midiTime());
+        if (prog >= 0) {
+            MidiOutput::sendProgram(ch, prog);
+        }
+    }
     MidiOutput::sendCommand(event);
     playing = true;
     timer->start();

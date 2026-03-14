@@ -28,6 +28,8 @@ class MidiTrack;
 
 class EventTool : public EditorTool {
 
+    friend class WindowContext;
+
 public:
     EventTool();
     EventTool(EventTool& other);

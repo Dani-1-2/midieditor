@@ -20,6 +20,7 @@
 #define MAINWINDOW_H_
 
 #include <QCloseEvent>
+#include <QList>
 #include <QMainWindow>
 #include <QScrollBar>
 #include <QSettings>
@@ -46,6 +47,7 @@ class Update;
 class SelectionNavigator;
 class TweakTarget;
 class NewNoteTool;
+class WindowContext;
 
 class MainWindow : public QMainWindow {
 
@@ -53,12 +55,17 @@ class MainWindow : public QMainWindow {
 
 public:
     MainWindow(QString initFile = "");
+    ~MainWindow();
     void setFile(MidiFile* f);
     MidiFile* getFile();
     MatrixWidget* matrixWidget();
     EventWidget* eventWidget();
     void setStartDir(QString dir);
     void setInitFile(const char* file);
+    bool isPlaying() const;
+    void activateContext();
+
+    static QList<MainWindow*> allWindows();
 
 protected:
     void dropEvent(QDropEvent* ev);
@@ -205,6 +212,7 @@ public slots:
 
 protected:
     void closeEvent(QCloseEvent* event);
+    void changeEvent(QEvent* event);
     void keyPressEvent(QKeyEvent* e);
     void keyReleaseEvent(QKeyEvent* event);
 
@@ -251,6 +259,12 @@ private:
 
     QStatusBar* _statusBar;
     NewNoteTool* _newNoteTool;
+
+    bool canReuseWindow() const;
+
+    WindowContext* _context;
+    bool _isInitialLoad;
+    static QList<MainWindow*> _allWindows;
 };
 
 #endif

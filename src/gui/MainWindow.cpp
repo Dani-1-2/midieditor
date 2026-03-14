@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "MainWindow.h"
+#include "WindowContext.h"
 
 #include <QAction>
 #include <QActionGroup>
@@ -107,11 +108,20 @@
 #include "AutomaticUpdateDialog.h"
 #include <QtCore/qmath.h>
 
+QList<MainWindow*> MainWindow::_allWindows;
+
 MainWindow::MainWindow(QString initFile)
     : QMainWindow()
     , _initFile(initFile)
+    , _isInitialLoad(true)
 {
+    // Deactivate any previously active context before we start overwriting statics
+    if (WindowContext::activeContext()) {
+        WindowContext::activeContext()->deactivate();
+    }
+
     file = 0;
+    _context = new WindowContext(this);
     _settings = new QSettings(QString("MidiEditor"), QString("NONE"));
 
     _moveSelectedEventsToChannelMenu = 0;
@@ -150,13 +160,13 @@ MainWindow::MainWindow(QString initFile)
     connect(_remoteServer, SIGNAL(forwardRequest()), this, SLOT(forward()));
     connect(_remoteServer, SIGNAL(pauseRequest()), this, SLOT(pause()));
 
-    connect(MidiPlayer::playerThread(),
+    connect(_context->playerThread,
         SIGNAL(timeMsChanged(int)), _remoteServer, SLOT(setTime(int)));
-    connect(MidiPlayer::playerThread(),
+    connect(_context->playerThread,
         SIGNAL(meterChanged(int, int)), _remoteServer, SLOT(setMeter(int, int)));
-    connect(MidiPlayer::playerThread(),
+    connect(_context->playerThread,
         SIGNAL(tonalityChanged(int)), _remoteServer, SLOT(setTonality(int)));
-    connect(MidiPlayer::playerThread(),
+    connect(_context->playerThread,
         SIGNAL(measureChanged(int, int)), _remoteServer, SLOT(setMeasure(int)));
 
 #endif
@@ -165,17 +175,17 @@ MainWindow::MainWindow(QString initFile)
     connect(UpdateManager::instance(), SIGNAL(updateDetected(Update*)), this, SLOT(updateDetected(Update*)));
     _quantizationGrid = _settings->value("quantization", 3).toInt();
 
-    // metronome
-    connect(MidiPlayer::playerThread(),
-        SIGNAL(measureChanged(int, int)), Metronome::instance(), SLOT(measureUpdate(int, int)));
-    connect(MidiPlayer::playerThread(),
-        SIGNAL(measureUpdate(int, int)), Metronome::instance(), SLOT(measureUpdate(int, int)));
-    connect(MidiPlayer::playerThread(),
-        SIGNAL(meterChanged(int, int)), Metronome::instance(), SLOT(meterChanged(int, int)));
-    connect(MidiPlayer::playerThread(),
-        SIGNAL(playerStopped()), Metronome::instance(), SLOT(playbackStopped()));
-    connect(MidiPlayer::playerThread(),
-        SIGNAL(playerStarted()), Metronome::instance(), SLOT(playbackStarted()));
+    // metronome - connect this window's player thread to this window's metronome
+    connect(_context->playerThread,
+        SIGNAL(measureChanged(int, int)), _context->metronome, SLOT(measureUpdate(int, int)));
+    connect(_context->playerThread,
+        SIGNAL(measureUpdate(int, int)), _context->metronome, SLOT(measureUpdate(int, int)));
+    connect(_context->playerThread,
+        SIGNAL(meterChanged(int, int)), _context->metronome, SLOT(meterChanged(int, int)));
+    connect(_context->playerThread,
+        SIGNAL(playerStopped()), _context->metronome, SLOT(playbackStopped()));
+    connect(_context->playerThread,
+        SIGNAL(playerStarted()), _context->metronome, SLOT(playbackStarted()));
 
     startDirectory = QDir::homePath();
 
@@ -519,8 +529,28 @@ MainWindow::MainWindow(QString initFile)
     currentTweakTarget = new TimeTweakTarget(this);
     selectionNavigator = new SelectionNavigator(this);
 
+    // Populate context with this window's widgets and current state
+    _context->matrixWidget = mw_matrixWidget;
+    _context->eventWidgetRef = _eventWidget;
+    _context->magnet = EventTool::magnetEnabled();
+    _context->currentTool = Tool::currentTool();
+    _context->selection = Selection::instance();
+
+    // Reconnect MatrixWidget to this window's playerThread
+    // (MatrixWidget constructor connects to MidiPlayer::playerThread() which
+    // may point to a different PlayerThread)
+    disconnect(mw_matrixWidget, SLOT(timeMsChanged(int)));
+    connect(_context->playerThread, SIGNAL(timeMsChanged(int)),
+        mw_matrixWidget, SLOT(timeMsChanged(int)));
+
+    // Register this window
+    _allWindows.append(this);
+
+    // Activate this window's context
+    _context->activate();
+
     QTimer::singleShot(200, this, SLOT(loadInitFile()));
-    if (UpdateManager::autoCheckForUpdates()) {
+    if (UpdateManager::autoCheckForUpdates() && _allWindows.size() == 1) {
         QTimer::singleShot(500, UpdateManager::instance(), SLOT(checkForUpdates()));
     }
 
@@ -535,12 +565,60 @@ MainWindow::MainWindow(QString initFile)
     }
 }
 
+MainWindow::~MainWindow()
+{
+    _allWindows.removeAll(this);
+    delete _context;
+}
+
+bool MainWindow::isPlaying() const
+{
+    // If this context is active, read the static directly (it may have been
+    // modified by MidiPlayer::stop() without updating the context field)
+    if (WindowContext::activeContext() == _context) {
+        return MidiPlayer::isPlaying();
+    }
+    return _context->playing;
+}
+
+void MainWindow::activateContext()
+{
+    bool contextChanged = (WindowContext::activeContext() != _context);
+    _context->activate();
+
+    if (contextChanged && file && MidiOutput::isConnected()) {
+        // Reset MIDI state and re-send this file's program changes
+        // so the synth uses the correct instruments for this window
+        MidiPlayer::panic();
+        for (int ch = 0; ch < 16; ch++) {
+            int prog = file->channel(ch)->progAtTick(file->cursorTick());
+            if (prog >= 0) {
+                MidiOutput::sendProgram(ch, prog);
+            }
+        }
+    }
+}
+
+QList<MainWindow*> MainWindow::allWindows()
+{
+    return _allWindows;
+}
+
+void MainWindow::changeEvent(QEvent* event)
+{
+    if (event->type() == QEvent::ActivationChange && isActiveWindow()) {
+        _context->activate();
+    }
+    QMainWindow::changeEvent(event);
+}
+
 void MainWindow::loadInitFile()
 {
     if (_initFile != "")
         loadFile(_initFile);
     else
         newFile();
+    _isInitialLoad = false;
 }
 
 void MainWindow::dropEvent(QDropEvent* ev)
@@ -571,10 +649,12 @@ void MainWindow::scrollPositionsChanged(int startMs, int maxMs, int startLine,
 
 void MainWindow::setFile(MidiFile* file)
 {
+    activateContext();
 
     EventTool::clearSelection();
     Selection::setFile(file);
-    Metronome::instance()->setFile(file);
+    _context->selection = Selection::instance();
+    _context->metronome->setFile(file);
     protocolWidget->setFile(file);
     channelWidget->setFile(file);
     _trackWidget->setFile(file);
@@ -585,6 +665,7 @@ void MainWindow::setFile(MidiFile* file)
 
     Tool::setFile(file);
     this->file = file;
+    _context->currentFile = file;
     connect(file, SIGNAL(trackChanged()), this, SLOT(updateTrackMenu()));
     setWindowTitle(QApplication::applicationName() + " - " + file->path() + "[*]");
     connect(file, SIGNAL(cursorPositionChanged()), channelWidget, SLOT(update()));
@@ -634,6 +715,7 @@ void MainWindow::matrixSizeChanged(int maxScrollTime, int maxScrollLine,
 
 void MainWindow::playStop()
 {
+    activateContext();
     if (MidiPlayer::isPlaying()) {
         stop();
     } else {
@@ -643,6 +725,15 @@ void MainWindow::playStop()
 
 void MainWindow::play()
 {
+    activateContext();
+
+    // Stop playback in all other windows
+    for (MainWindow* w : _allWindows) {
+        if (w != this && w->isPlaying()) {
+            w->stop();
+        }
+    }
+
     if (!MidiOutput::isConnected()) {
         CompleteMidiSetupDialog* d = new CompleteMidiSetupDialog(this, false, true);
         d->setModal(true);
@@ -660,6 +751,7 @@ void MainWindow::play()
         eventWidget()->setEnabled(false);
 
         MidiPlayer::play(file);
+        _context->playing = true;
         connect(MidiPlayer::playerThread(),
             SIGNAL(playerStopped()), this, SLOT(stop()));
 
@@ -675,6 +767,14 @@ void MainWindow::play()
 
 void MainWindow::record()
 {
+    activateContext();
+
+    // Stop playback in all other windows
+    for (MainWindow* w : _allWindows) {
+        if (w != this && w->isPlaying()) {
+            w->stop();
+        }
+    }
 
     if (!MidiOutput::isConnected() || !MidiInput::isConnected()) {
         CompleteMidiSetupDialog* d = new CompleteMidiSetupDialog(this, !MidiInput::isConnected(), !MidiOutput::isConnected());
@@ -708,6 +808,7 @@ void MainWindow::record()
             _remoteServer->record();
 #endif
             MidiPlayer::play(file);
+            _context->playing = true;
             MidiInput::startInput();
             connect(MidiPlayer::playerThread(),
                 SIGNAL(playerStopped()), this, SLOT(stop()));
@@ -721,6 +822,7 @@ void MainWindow::record()
 
 void MainWindow::pause()
 {
+    activateContext();
     if (file) {
         if (MidiPlayer::isPlaying()) {
             file->setPauseTick(file->tick(MidiPlayer::timeMs()));
@@ -731,6 +833,7 @@ void MainWindow::pause()
 
 void MainWindow::stop(bool autoConfirmRecord, bool addEvents, bool resetPause)
 {
+    activateContext();
 
     if (!file) {
         return;
@@ -745,6 +848,7 @@ void MainWindow::stop(bool autoConfirmRecord, bool addEvents, bool resetPause)
     }
     if (!MidiInput::recording() && MidiPlayer::isPlaying()) {
         MidiPlayer::stop();
+        _context->playing = false;
         _miscWidget->setEnabled(true);
         channelWidget->setEnabled(true);
         _trackWidget->setEnabled(true);
@@ -766,6 +870,7 @@ void MainWindow::stop(bool autoConfirmRecord, bool addEvents, bool resetPause)
 
     if (MidiInput::recording()) {
         MidiPlayer::stop();
+        _context->playing = false;
         panic();
         _miscWidget->setEnabled(true);
         channelWidget->setEnabled(true);
@@ -936,7 +1041,7 @@ void MainWindow::backMarker()
 
 void MainWindow::save()
 {
-
+    activateContext();
     if (!file)
         return;
 
@@ -1027,76 +1132,40 @@ void MainWindow::saveas()
     }
 }
 
+bool MainWindow::canReuseWindow() const
+{
+    return !file || (file->path().isEmpty() && file->saved());
+}
+
 void MainWindow::load()
 {
-    QString oldPath = startDirectory;
-    if (file) {
-        oldPath = file->path();
-        if (!file->saved()) {
-            switch (QMessageBox::question(this, "Save file?", "Save file " + file->path() + " before closing?", "Save", "Close without saving", "Cancel", 0, 2)) {
-            case 0: {
-                // save
-                if (QFile(file->path()).exists()) {
-                    file->save(file->path());
-                } else {
-                    saveas();
-                }
-                break;
-            }
-            case 1: {
-                // close
-                break;
-            }
-            case 2: {
-                // break
-                return;
-            }
-            }
-        }
-    }
-
-    QFile* f = new QFile(oldPath);
     QString dir = startDirectory;
-    if (f->exists()) {
-        QFileInfo(*f).dir().path();
+    if (file) {
+        dir = QFileInfo(file->path()).dir().path();
     }
     QString newPath = QFileDialog::getOpenFileName(this, "Open file",
         dir, "MIDI Files(*.mid *.midi);;All Files(*)");
 
     if (!newPath.isEmpty()) {
-        openFile(newPath);
+        if (canReuseWindow()) {
+            openFile(newPath);
+        } else {
+            MainWindow* w = new MainWindow(newPath);
+            w->showMaximized();
+        }
     }
 }
 
 void MainWindow::loadFile(QString nfile)
 {
-    QString oldPath = startDirectory;
-    if (file) {
-        oldPath = file->path();
-        if (!file->saved()) {
-            switch (QMessageBox::question(this, "Save file?", "Save file " + file->path() + " before closing?", "Save", "Close without saving", "Cancel", 0, 2)) {
-            case 0: {
-                // save
-                if (QFile(file->path()).exists()) {
-                    file->save(file->path());
-                } else {
-                    saveas();
-                }
-                break;
-            }
-            case 1: {
-                // close
-                break;
-            }
-            case 2: {
-                // break
-                return;
-            }
-            }
-        }
+    if (nfile.isEmpty()) {
+        return;
     }
-    if (!nfile.isEmpty()) {
+    if (_isInitialLoad || canReuseWindow()) {
         openFile(nfile);
+    } else {
+        MainWindow* w = new MainWindow(nfile);
+        w->showMaximized();
     }
 }
 
@@ -1128,6 +1197,7 @@ void MainWindow::openFile(QString filePath)
 
 void MainWindow::redo()
 {
+    activateContext();
     if (file)
         file->protocol()->redo(true);
     updateTrackMenu();
@@ -1135,6 +1205,7 @@ void MainWindow::redo()
 
 void MainWindow::undo()
 {
+    activateContext();
     if (file)
         file->protocol()->undo(true);
     updateTrackMenu();
@@ -1224,45 +1295,60 @@ void MainWindow::closeEvent(QCloseEvent* event)
         }
     }
 
-    if (MidiOutput::outputPort() != "") {
-        _settings->setValue("out_port", MidiOutput::outputPort());
+    // Stop playback if this window is playing
+    if (isPlaying()) {
+        activateContext();
+        MidiPlayer::stop();
+        _context->playing = false;
     }
-    if (MidiInput::inputPort() != "") {
-        _settings->setValue("in_port", MidiInput::inputPort());
+
+    // Deactivate context
+    if (WindowContext::activeContext() == _context) {
+        _context->deactivate();
     }
+
+    // Save settings only from the last closing window
+    if (_allWindows.size() <= 1) {
+        if (MidiOutput::outputPort() != "") {
+            _settings->setValue("out_port", MidiOutput::outputPort());
+        }
+        if (MidiInput::inputPort() != "") {
+            _settings->setValue("in_port", MidiInput::inputPort());
+        }
 #ifdef ENABLE_REMOTE
-    if (_remoteServer->clientIp() != "") {
-        _settings->setValue("udp_client_ip", _remoteServer->clientIp());
-    }
-    if (_remoteServer->clientPort() > 0) {
-        _settings->setValue("udp_client_port", _remoteServer->clientPort());
-    }
-    _remoteServer->stopServer();
+        if (_remoteServer->clientIp() != "") {
+            _settings->setValue("udp_client_ip", _remoteServer->clientIp());
+        }
+        if (_remoteServer->clientPort() > 0) {
+            _settings->setValue("udp_client_port", _remoteServer->clientPort());
+        }
+        _remoteServer->stopServer();
 #endif
 
-    bool ok;
-    int numStart = _settings->value("numStart_v3.5", -1).toInt(&ok);
-    _settings->setValue("numStart_v3.5", numStart + 1);
+        bool ok;
+        int numStart = _settings->value("numStart_v3.5", -1).toInt(&ok);
+        _settings->setValue("numStart_v3.5", numStart + 1);
 
-    // save the current Path
-    _settings->setValue("open_path", startDirectory);
-    _settings->setValue("alt_stop", MidiOutput::isAlternativePlayer);
-    _settings->setValue("ticks_per_quarter", MidiFile::defaultTimePerQuarter);
-    _settings->setValue("screen_locked", mw_matrixWidget->screenLocked());
-    _settings->setValue("magnet", EventTool::magnetEnabled());
+        // save the current Path
+        _settings->setValue("open_path", startDirectory);
+        _settings->setValue("alt_stop", MidiOutput::isAlternativePlayer);
+        _settings->setValue("ticks_per_quarter", MidiFile::defaultTimePerQuarter);
+        _settings->setValue("screen_locked", mw_matrixWidget->screenLocked());
+        _settings->setValue("magnet", EventTool::magnetEnabled());
 
-    _settings->setValue("div", mw_matrixWidget->div());
-    _settings->setValue("colors_from_channel", mw_matrixWidget->colorsByChannel());
+        _settings->setValue("div", mw_matrixWidget->div());
+        _settings->setValue("colors_from_channel", mw_matrixWidget->colorsByChannel());
 
-    _settings->setValue("metronome", Metronome::enabled());
-    _settings->setValue("metronome_loudness", Metronome::loudness());
-    _settings->setValue("thru", MidiInput::thru());
-    _settings->setValue("quantization", _quantizationGrid);
+        _settings->setValue("metronome", Metronome::enabled());
+        _settings->setValue("metronome_loudness", Metronome::loudness());
+        _settings->setValue("thru", MidiInput::thru());
+        _settings->setValue("quantization", _quantizationGrid);
 
-    _settings->setValue("auto_update_after_prompt", UpdateManager::autoCheckForUpdates());
-    _settings->setValue("has_prompted_for_updates", true); // Happens on first start
+        _settings->setValue("auto_update_after_prompt", UpdateManager::autoCheckForUpdates());
+        _settings->setValue("has_prompted_for_updates", true); // Happens on first start
 
-    Appearance::writeSettings(_settings);
+        Appearance::writeSettings(_settings);
+    }
 }
 
 void MainWindow::donate()
@@ -1296,31 +1382,14 @@ void MainWindow::setStartDir(QString dir)
 
 void MainWindow::newFile()
 {
-    if (file) {
-        if (!file->saved()) {
-            switch (QMessageBox::question(this, "Save file?", "Save file " + file->path() + " before closing?", "Save", "Close without saving", "Cancel", 0, 2)) {
-            case 0: {
-                // save
-                if (QFile(file->path()).exists()) {
-                    file->save(file->path());
-                } else {
-                    saveas();
-                }
-                break;
-            }
-            case 1: {
-                // close
-                break;
-            }
-            case 2: {
-                // break
-                return;
-            }
-            }
-        }
+    // If this window has a real file, spawn a new window
+    if (file && !_isInitialLoad && !canReuseWindow()) {
+        MainWindow* w = new MainWindow();
+        w->showMaximized();
+        return;
     }
 
-    // create new File
+    // In-place file creation (for initial load, empty window, or clean untitled)
     MidiFile* f = new MidiFile();
 
     setFile(f);
@@ -1583,36 +1652,13 @@ void MainWindow::updateRecentPathsList()
 
 void MainWindow::openRecent(QAction* action)
 {
-
     QString path = action->data().toString();
-
-    if (file) {
-        QString oldPath = file->path();
-
-        if (!file->saved()) {
-            switch (QMessageBox::question(this, "Save file?", "Save file " + file->path() + " before closing?", "Save", "Close without saving", "Cancel", 0, 2)) {
-            case 0: {
-                // save
-                if (QFile(file->path()).exists()) {
-                    file->save(file->path());
-                } else {
-                    saveas();
-                }
-                break;
-            }
-            case 1: {
-                // close
-                break;
-            }
-            case 2: {
-                // break
-                return;
-            }
-            }
-        }
+    if (canReuseWindow()) {
+        openFile(path);
+    } else {
+        MainWindow* w = new MainWindow(path);
+        w->showMaximized();
     }
-
-    openFile(path);
 }
 
 void MainWindow::updateChannelMenu()
