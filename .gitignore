@@ -1,11 +1,1 @@
 midieditor.pro.user
-*.o
-*.AppImage
-Makefile
-MidiEditor
-AppDir
-.ccache
-.qmake*
-.tmp
-qrc_resources.cpp
-tests/tests
